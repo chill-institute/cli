@@ -1,0 +1,171 @@
+package cli
+
+import (
+	"fmt"
+	"net/url"
+	"strings"
+
+	"github.com/chill-institute/cli/internal/config"
+	"github.com/spf13/cobra"
+)
+
+const redactedToken = "[redacted]"
+
+func newSettingsCommand(app *appContext) *cobra.Command {
+	command := &cobra.Command{
+		Use:   "settings",
+		Short: "Manage local CLI settings",
+	}
+
+	command.AddCommand(newSettingsPathCommand(app))
+	command.AddCommand(newSettingsShowCommand(app))
+	command.AddCommand(newSettingsGetCommand(app))
+	command.AddCommand(newSettingsSetCommand(app))
+	return command
+}
+
+func newSettingsPathCommand(app *appContext) *cobra.Command {
+	return &cobra.Command{
+		Use:   "path",
+		Short: "Print local settings file path",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			store, err := app.configStore()
+			if err != nil {
+				return err
+			}
+			return app.writeJSONPayload(map[string]any{"path": store.Path()})
+		},
+	}
+}
+
+func newSettingsShowCommand(app *appContext) *cobra.Command {
+	return &cobra.Command{
+		Use:   "show",
+		Short: "Show local CLI settings (auth token redacted)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := loadStoredCLISettings(app)
+			if err != nil {
+				return err
+			}
+			authToken := ""
+			if strings.TrimSpace(cfg.AuthToken) != "" {
+				authToken = redactedToken
+			}
+			return app.writeJSONPayload(map[string]any{
+				"api_base_url": cfg.APIBaseURL,
+				"auth_token":   authToken,
+			})
+		},
+	}
+}
+
+func newSettingsGetCommand(app *appContext) *cobra.Command {
+	return &cobra.Command{
+		Use:   "get <key>",
+		Short: "Get a local CLI setting value",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			key, err := normalizeSettingsKey(args[0])
+			if err != nil {
+				return err
+			}
+
+			cfg, err := loadStoredCLISettings(app)
+			if err != nil {
+				return err
+			}
+
+			switch key {
+			case "api-base-url":
+				return app.writeJSONPayload(map[string]any{
+					"key":   key,
+					"value": cfg.APIBaseURL,
+				})
+			default:
+				return fmt.Errorf("unsupported settings key %q", key)
+			}
+		},
+	}
+}
+
+func newSettingsSetCommand(app *appContext) *cobra.Command {
+	return &cobra.Command{
+		Use:   "set <key> <value>",
+		Short: "Set a local CLI setting value",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			key, err := normalizeSettingsKey(args[0])
+			if err != nil {
+				return err
+			}
+
+			cfg, err := loadStoredCLISettings(app)
+			if err != nil {
+				return err
+			}
+
+			switch key {
+			case "api-base-url":
+				nextValue, err := normalizeAPIBaseURL(args[1])
+				if err != nil {
+					return err
+				}
+				cfg.APIBaseURL = nextValue
+			default:
+				return fmt.Errorf("unsupported settings key %q", key)
+			}
+
+			if err := app.saveConfig(cfg); err != nil {
+				return err
+			}
+
+			return app.writeJSONPayload(map[string]any{
+				"status": "ok",
+				"key":    key,
+				"value":  cfg.APIBaseURL,
+			})
+		},
+	}
+}
+
+func loadStoredCLISettings(app *appContext) (config.Config, error) {
+	store, err := app.configStore()
+	if err != nil {
+		return config.Config{}, err
+	}
+	cfg, err := store.Load()
+	if err != nil {
+		return config.Config{}, err
+	}
+	return cfg.Normalized(), nil
+}
+
+func normalizeSettingsKey(raw string) (string, error) {
+	normalized := strings.ToLower(strings.TrimSpace(raw))
+	switch normalized {
+	case "api-base-url", "api_base_url":
+		return "api-base-url", nil
+	default:
+		return "", fmt.Errorf("unsupported settings key %q (supported: api-base-url)", raw)
+	}
+}
+
+func normalizeAPIBaseURL(raw string) (string, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return "", fmt.Errorf("api-base-url cannot be empty")
+	}
+
+	parsed, err := url.Parse(trimmed)
+	if err != nil {
+		return "", fmt.Errorf("parse api-base-url: %w", err)
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return "", fmt.Errorf("api-base-url must include scheme and host")
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", fmt.Errorf("api-base-url must start with http:// or https://")
+	}
+
+	return strings.TrimRight(trimmed, "/"), nil
+}

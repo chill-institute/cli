@@ -1,0 +1,10 @@
+[tools]
+go = "1.25.7"
+
+[tasks.test]
+description = "Run CLI unit tests"
+run = "go test ./..."
+
+[tasks.verify]
+description = "Run the standalone CLI verification baseline"
+depends = ["test"]
