@@ -1,4 +1,4 @@
-# chilly CLI
+# `chill-institute/cli`
 
 `chilly` is the Go CLI for `chill.institute`.
 
