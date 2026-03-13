@@ -4,6 +4,8 @@
 
 - Functional command mode: Cobra commands with `--output json` for automation or `--output pretty` for humans.
 
+Architecture notes live in [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+
 ## Build
 
 ```bash
