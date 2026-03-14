@@ -1,6 +1,6 @@
 # cli Agent Notes
 
-Keep this file short and repo-specific. Shared workspace rules live in `../AGENTS.md`.
+Keep this file short and repo-specific. Shared workspace rules live in [chill-institute/runbook/AGENTS.md](https://github.com/chill-institute/runbook/blob/main/AGENTS.md).
 
 ## Purpose
 
@@ -25,7 +25,7 @@ Run these before finishing meaningful changes:
 
 ## Skills
 
-- Repo-local skills live in `./skills/`.
+- Repo-local skills live in [skills/](./skills/).
 - The repo-local `chilly-cli` skill is for agents using the CLI, not for maintainers editing the CLI.
 - Keep build philosophy and contributor instructions in this file, not in the usage skill.
 - As command surfaces, auth flows, defaults, or output contracts change, update the consumer-facing `chilly-cli` skill in the same pass so downstream agents stay aligned with the real SDK behavior.
