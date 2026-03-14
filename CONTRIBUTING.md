@@ -17,6 +17,12 @@ Build the CLI locally:
 go build ./cmd/chilly
 ```
 
+Run from source while developing:
+
+```bash
+go run ./cmd/chilly version --output json
+```
+
 ## Validation
 
 Run the full repo checks before opening or updating a pull request:
@@ -29,6 +35,15 @@ Format Go files when needed:
 
 ```bash
 mise run fmt
+```
+
+Other shared development commands:
+
+```bash
+mise run fmt:check
+mise run lint
+mise run coverage
+mise run security
 ```
 
 The repository ships git hooks in `.githooks/`:

@@ -28,14 +28,6 @@ curl -fsSL https://raw.githubusercontent.com/chill-institute/cli/main/scripts/in
 chilly version --output json
 ```
 
-### From Source
-
-```bash
-mise install
-go build ./cmd/chilly
-./chilly version --output json
-```
-
 ## Update
 
 ```bash
@@ -128,16 +120,6 @@ In `--output json` mode:
 - command results go to `stdout`
 - failures are emitted as a single JSON envelope on `stderr`
 - exit classes are `0` success, `2` usage, `3` auth, `4` API, `5` internal
-
-## Quality
-
-Shared local and CI checks run through `mise`:
-
-- `mise run fmt:check`
-- `mise run lint`
-- `mise run coverage`
-- `mise run security`
-- `mise run verify`
 
 ## Contributing
 
