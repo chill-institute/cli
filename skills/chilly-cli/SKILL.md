@@ -16,6 +16,7 @@ Use `chilly` as the local command-line entrypoint for chill.institute. Prefer `-
 5. Use `settings get api-base-url` before assuming which hosted environment is active.
 6. Use `schema` or `--describe` when you need to inspect the local CLI contract before running a command.
 7. Use `version` and `self-update --check` when you need release provenance before proposing an upgrade.
+8. Use `--dry-run` on supported mutating commands when you need to preview a request safely.
 
 ## Auth
 
@@ -59,8 +60,12 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly list-top-movies --output json`
 - Add transfer:
   `chilly add-transfer --url "magnet:?xt=..." --output json`
+- Preview transfer request without executing it:
+  `chilly add-transfer --url "magnet:?xt=..." --dry-run --output json`
 - Read user settings:
   `chilly user settings get --output json`
+- Preview full user settings update:
+  `chilly user settings set --json '{"showTopMovies":true}' --dry-run --output json`
 - Show build metadata:
   `chilly version --output json`
 
@@ -70,6 +75,7 @@ Read `references/commands.md` for a fuller command cookbook and current gotchas.
 
 - Prefer `--output json` for automation.
 - Check the active API base URL before mutating anything.
+- Prefer `--dry-run` before a mutation when you only need the request shape or want a safe preview.
 - Expect prompts and browser-login hints on `stderr`; parse only `stdout`.
 - Expect failures in `--output json` mode to appear as a single JSON envelope on `stderr`.
 - Use `whoami` after auth changes when you need a positive confirmation that the token works.

@@ -69,10 +69,16 @@ Fresh configs default to `https://api.binge.institute`. Saved local config can o
 
 - Add transfer:
   `chilly add-transfer --url "magnet:?xt=..." --output json`
+- Preview add-transfer without executing it:
+  `chilly add-transfer --url "magnet:?xt=..." --dry-run --output json`
 - Same operation through the nested command:
   `chilly user transfer add --url "magnet:?xt=..." --output json`
+- Preview the nested transfer command:
+  `chilly user transfer add --url "magnet:?xt=..." --dry-run --output json`
 - Replace user settings with a full JSON payload:
   `chilly user settings set --json '{"showTopMovies":true}' --output json`
+- Preview the full settings payload:
+  `chilly user settings set --json '{"showTopMovies":true}' --dry-run --output json`
 
 `user settings set` currently expects a full JSON object, not a partial patch.
 

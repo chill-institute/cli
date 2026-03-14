@@ -23,6 +23,7 @@ type schemaEntry struct {
 	Summary         string        `json:"summary"`
 	AuthMode        string        `json:"auth_mode"`
 	Mutates         bool          `json:"mutates"`
+	SupportsDryRun  bool          `json:"supports_dry_run"`
 	LinkedProcedure string        `json:"linked_procedure,omitempty"`
 	Inputs          []schemaInput `json:"inputs,omitempty"`
 	Output          schemaOutput  `json:"output"`
@@ -50,10 +51,12 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Summary:         "Add transfer to put.io",
 		AuthMode:        string(rpcAuthUser),
 		Mutates:         true,
+		SupportsDryRun:  true,
 		LinkedProcedure: procedureUserAddTransfer,
 		Output:          schemaOutput{JSON: true, Human: true},
 		Inputs: appendInputs(
 			schemaInput{Name: "url", Type: "string", Required: true, Description: "magnet or URL to add as transfer"},
+			schemaInput{Name: "dry-run", Type: "boolean", Description: "validate input and print the request without executing it"},
 		),
 	},
 	"auth": {
@@ -254,10 +257,12 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Summary:         "Save full user settings JSON payload",
 		AuthMode:        string(rpcAuthUser),
 		Mutates:         true,
+		SupportsDryRun:  true,
 		LinkedProcedure: procedureUserSaveUserSettings,
 		Output:          schemaOutput{JSON: true, Human: true},
 		Inputs: appendInputs(
 			schemaInput{Name: "json", Type: "string", Required: true, Description: "full settings object JSON"},
+			schemaInput{Name: "dry-run", Type: "boolean", Description: "validate input and print the request without executing it"},
 		),
 	},
 	"user top-movies": {
@@ -283,10 +288,12 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Summary:         "Add transfer",
 		AuthMode:        string(rpcAuthUser),
 		Mutates:         true,
+		SupportsDryRun:  true,
 		LinkedProcedure: procedureUserAddTransfer,
 		Output:          schemaOutput{JSON: true, Human: true},
 		Inputs: appendInputs(
 			schemaInput{Name: "url", Type: "string", Required: true, Description: "magnet or URL"},
+			schemaInput{Name: "dry-run", Type: "boolean", Description: "validate input and print the request without executing it"},
 		),
 	},
 	"whoami": {
@@ -310,12 +317,13 @@ var commandSchemaRegistry = map[string]schemaEntry{
 
 var procedureSchemaRegistry = map[string]schemaEntry{
 	procedureUserAddTransfer: {
-		ID:       procedureUserAddTransfer,
-		Kind:     "procedure",
-		Summary:  "Add transfer to put.io",
-		AuthMode: string(rpcAuthUser),
-		Mutates:  true,
-		Output:   schemaOutput{JSON: true},
+		ID:             procedureUserAddTransfer,
+		Kind:           "procedure",
+		Summary:        "Add transfer to put.io",
+		AuthMode:       string(rpcAuthUser),
+		Mutates:        true,
+		SupportsDryRun: true,
+		Output:         schemaOutput{JSON: true},
 		Inputs: []schemaInput{
 			{Name: "url", Type: "string", Required: true, Description: "magnet or URL to add as transfer"},
 		},
@@ -349,12 +357,13 @@ var procedureSchemaRegistry = map[string]schemaEntry{
 		Output:   schemaOutput{JSON: true},
 	},
 	procedureUserSaveUserSettings: {
-		ID:       procedureUserSaveUserSettings,
-		Kind:     "procedure",
-		Summary:  "Save user settings",
-		AuthMode: string(rpcAuthUser),
-		Mutates:  true,
-		Output:   schemaOutput{JSON: true},
+		ID:             procedureUserSaveUserSettings,
+		Kind:           "procedure",
+		Summary:        "Save user settings",
+		AuthMode:       string(rpcAuthUser),
+		Mutates:        true,
+		SupportsDryRun: true,
+		Output:         schemaOutput{JSON: true},
 		Inputs: []schemaInput{
 			{Name: "settings", Type: "object", Required: true, Description: "full user settings object"},
 		},
