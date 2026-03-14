@@ -18,6 +18,7 @@ graph LR
 |-----------|----------------|----------|
 | Cobra command layer | Parse commands, flags, and output mode | app context, config store, RPC client |
 | App context | Share config path, API URL, output mode, and helpers | commands, config store |
+| Metadata registry | Describe public commands and linked backend procedures for agents | commands, schema surfaces |
 | Config store | Persist local auth token and API base URL | filesystem |
 | RPC client | Send JSON requests to v4 procedures, attach auth headers, map errors | `chill.institute` API |
 | Output renderers | Render pretty or JSON command output | command handlers |
@@ -27,6 +28,7 @@ graph LR
 ```mermaid
 graph TD
   Root["chilly"] --> Auth["auth"]
+  Root --> Schema["schema"]
   Root --> Whoami["whoami"]
   Root --> Settings["settings"]
   Root --> Search["search"]
@@ -40,6 +42,7 @@ Current command groups:
 | Command | Responsibility |
 |---------|----------------|
 | `auth` | login/logout and token acquisition |
+| `schema` | inspect local command and procedure metadata |
 | `whoami` | verify current auth state |
 | `settings` | inspect and update local CLI config |
 | `search` | run search against the hosted API |
@@ -94,8 +97,55 @@ The current client is intentionally lightweight:
 
 This repo does not yet consume generated RPC bindings directly. It currently uses a manual procedure-oriented client.
 
+## Introspection Model
+
+The CLI keeps a local metadata registry for:
+
+- public command schemas
+- backend procedure schemas linked from those commands
+
+That registry is the source of truth for:
+
+- `chilly schema`
+- `chilly <command> --describe`
+- future dry-run and field-selection eligibility
+
+The current milestone does not fetch schema dynamically from the API. Discovery is explicit and local to the CLI repo.
+
 ## Boundaries
 
 - Local config is the only persistent state in this repo.
 - The CLI does not embed backend behavior. It delegates to the hosted API.
 - Auth is bearer-token based for user-scoped commands.
+
+## Output And Error Contract
+
+- Successful command data is written to `stdout`.
+- Prompts, warnings, and error output are written to `stderr`.
+- In `--output json`, failures emit a single JSON error envelope to `stderr`.
+- Exit codes are classified into usage (`2`), auth (`3`), API (`4`), and internal (`5`) failures.
+
+## Browser Auth Flow
+
+Interactive login is CLI-native rather than web-app mediated:
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant CLI
+  participant Browser
+  participant API
+  participant Putio
+
+  CLI->>CLI: start loopback callback server
+  CLI->>Browser: open /auth/putio/start?success_url=http://127.0.0.1:port/...
+  Browser->>API: GET /auth/putio/start
+  API->>Putio: redirect to provider auth
+  Putio->>API: oauth callback
+  API->>Browser: redirect with #auth_token=...
+  Browser->>CLI: POST auth_token to loopback callback server
+  CLI->>API: verify token via user profile RPC
+  CLI->>CLI: persist auth token in config store
+```
+
+The CLI talks directly to the API for both token verification and all user-scoped RPCs. The browser is only used to complete the put.io OAuth step and hand the resulting token back to the local loopback server.

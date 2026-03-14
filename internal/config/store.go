@@ -12,7 +12,7 @@ import (
 const (
 	appDirName      = "chilly"
 	configFileName  = "config.json"
-	defaultAPIBase  = "http://localhost:8080"
+	defaultAPIBase  = "https://api.binge.institute"
 	directoryPerm   = 0o700
 	configFilePerm  = 0o600
 	tempFilePattern = "config-*.tmp"

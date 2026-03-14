@@ -63,7 +63,7 @@ func newSettingsGetCommand(app *appContext) *cobra.Command {
 	return &cobra.Command{
 		Use:   "get <key>",
 		Short: "Get a local CLI setting value",
-		Args:  cobra.ExactArgs(1),
+		Args:  allowDescribeArgs(cobra.ExactArgs(1)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key, err := normalizeSettingsKey(args[0])
 			if err != nil {
@@ -92,7 +92,7 @@ func newSettingsSetCommand(app *appContext) *cobra.Command {
 	return &cobra.Command{
 		Use:   "set <key> <value>",
 		Short: "Set a local CLI setting value",
-		Args:  cobra.ExactArgs(2),
+		Args:  allowDescribeArgs(cobra.ExactArgs(2)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key, err := normalizeSettingsKey(args[0])
 			if err != nil {
@@ -146,25 +146,25 @@ func normalizeSettingsKey(raw string) (string, error) {
 	case "api-base-url", "api_base_url":
 		return "api-base-url", nil
 	default:
-		return "", fmt.Errorf("unsupported settings key %q (supported: api-base-url)", raw)
+		return "", usageError("unsupported_settings_key", "unsupported settings key %q (supported: api-base-url)", raw)
 	}
 }
 
 func normalizeAPIBaseURL(raw string) (string, error) {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
-		return "", fmt.Errorf("api-base-url cannot be empty")
+		return "", usageError("empty_api_base_url", "api-base-url cannot be empty")
 	}
 
 	parsed, err := url.Parse(trimmed)
 	if err != nil {
-		return "", fmt.Errorf("parse api-base-url: %w", err)
+		return "", usageError("invalid_api_base_url", "parse api-base-url: %v", err)
 	}
 	if parsed.Scheme == "" || parsed.Host == "" {
-		return "", fmt.Errorf("api-base-url must include scheme and host")
+		return "", usageError("invalid_api_base_url", "api-base-url must include scheme and host")
 	}
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return "", fmt.Errorf("api-base-url must start with http:// or https://")
+		return "", usageError("invalid_api_base_url", "api-base-url must start with http:// or https://")
 	}
 
 	return strings.TrimRight(trimmed, "/"), nil

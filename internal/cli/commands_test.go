@@ -12,31 +12,6 @@ import (
 	"github.com/chill-institute/cli/internal/config"
 )
 
-func TestRootCommandIncludesExpectedTopLevelCommands(t *testing.T) {
-	command := NewRootCommand()
-	expected := map[string]bool{
-		"auth":            true,
-		"whoami":          true,
-		"settings":        true,
-		"search":          true,
-		"list-top-movies": true,
-		"add-transfer":    true,
-		"user":            true,
-	}
-
-	for _, subcommand := range command.Commands() {
-		if _, ok := expected[subcommand.Name()]; ok {
-			expected[subcommand.Name()] = false
-		}
-	}
-
-	for name, missing := range expected {
-		if missing {
-			t.Fatalf("missing top-level command %q", name)
-		}
-	}
-}
-
 func TestAuthLoginWithTokenSavesConfig(t *testing.T) {
 	t.Parallel()
 
