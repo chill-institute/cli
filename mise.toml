@@ -1,10 +1,34 @@
 [tools]
-go = "1.25.7"
+go = "1.25.8"
+
+[tasks.fmt]
+description = "Format Go sources"
+run = "./scripts/format-go.sh"
+
+[tasks."fmt:check"]
+description = "Check Go source formatting"
+run = "./scripts/check-format.sh"
+
+[tasks.lint]
+description = "Run static analysis"
+run = "go tool golangci-lint run ./..."
 
 [tasks.test]
 description = "Run CLI unit tests"
 run = "go test ./..."
 
+[tasks.coverage]
+description = "Run tests with coverage threshold"
+run = "./scripts/check-coverage.sh 70"
+
+[tasks.security]
+description = "Run dependency vulnerability scan"
+run = "go tool govulncheck ./..."
+
+[tasks.hooks]
+description = "Install repo git hooks"
+run = "./scripts/setup-githooks.sh"
+
 [tasks.verify]
-description = "Run the standalone CLI verification baseline"
-depends = ["test"]
+description = "Run formatting, lint, coverage, and security checks"
+depends = ["fmt:check", "lint", "coverage", "security"]

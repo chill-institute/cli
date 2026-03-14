@@ -1,0 +1,71 @@
+version: 2
+
+project_name: chilly
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: chilly
+    main: ./cmd/chilly
+    binary: chilly
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/chill-institute/cli/internal/buildinfo.version={{ .Version }}
+      - -X github.com/chill-institute/cli/internal/buildinfo.commit={{ .Commit }}
+      - -X github.com/chill-institute/cli/internal/buildinfo.date={{ .Date }}
+
+archives:
+  - id: chilly
+    ids:
+      - chilly
+    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+checksum:
+  name_template: checksums.txt
+
+brews:
+  - name: chilly
+    ids:
+      - chilly
+    repository:
+      owner: chill-institute
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: https://chill.institute
+    description: Agent-first command line client for chill.institute
+    license: MIT
+    install: |
+      bin.install "chilly"
+    test: |
+      system "#{bin}/chilly", "version", "--output", "json"
+
+release:
+  github:
+    owner: chill-institute
+    name: cli
+  draft: false
+  prerelease: auto
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: git

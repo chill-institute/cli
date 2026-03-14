@@ -15,8 +15,10 @@ func TestRootCommandIncludesSchemaTopLevelCommand(t *testing.T) {
 		"list-top-movies": true,
 		"schema":          true,
 		"search":          true,
+		"self-update":     true,
 		"settings":        true,
 		"user":            true,
+		"version":         true,
 		"whoami":          true,
 	}
 

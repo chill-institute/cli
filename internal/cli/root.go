@@ -70,6 +70,8 @@ func newRootCommand(app *appContext) *cobra.Command {
 	command.AddCommand(newAddTransferCommand(app))
 	command.AddCommand(newUserCommand(app))
 	command.AddCommand(newSchemaCommand(app))
+	command.AddCommand(newVersionCommand(app))
+	command.AddCommand(newSelfUpdateCommand(app))
 
 	return command
 }

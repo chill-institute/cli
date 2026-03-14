@@ -184,7 +184,9 @@ func (flow *loopbackAuthFlow) handleToken(writer http.ResponseWriter, request *h
 		return
 	}
 
-	defer request.Body.Close()
+	defer func() {
+		_ = request.Body.Close()
+	}()
 	body, err := io.ReadAll(io.LimitReader(request.Body, 1<<20))
 	if err != nil {
 		http.Error(writer, "failed to read request body", http.StatusBadRequest)

@@ -26,6 +26,17 @@ Fresh configs default to `https://api.binge.institute`. Saved local config can o
 - Describe a command without executing it:
   `go run ./cmd/chilly search --describe --output json`
 
+## Version And Update
+
+- Show build metadata:
+  `go run ./cmd/chilly version --output json`
+- Check whether a newer release exists:
+  `go run ./cmd/chilly self-update --check --output json`
+- Install the latest release over the current binary:
+  `go run ./cmd/chilly self-update`
+- Install a specific release:
+  `go run ./cmd/chilly self-update --version v0.1.0`
+
 ## Authentication
 
 - Interactive browser-assisted login:

@@ -135,6 +135,18 @@ var commandSchemaRegistry = map[string]schemaEntry{
 			schemaInput{Name: "indexer-id", Type: "string", Description: "optional indexer id"},
 		),
 	},
+	"self-update": {
+		ID:       "self-update",
+		Kind:     "command",
+		Summary:  "Download and install the latest released CLI binary",
+		AuthMode: string(rpcAuthNone),
+		Mutates:  true,
+		Output:   schemaOutput{JSON: true, Human: true},
+		Inputs: appendInputs(
+			schemaInput{Name: "check", Type: "boolean", Description: "check for a newer release without installing it"},
+			schemaInput{Name: "version", Type: "string", Description: "specific release tag to install"},
+		),
+	},
 	"settings": {
 		ID:       "settings",
 		Kind:     "command",
@@ -285,6 +297,14 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		LinkedProcedure: procedureUserGetUserProfile,
 		Output:          schemaOutput{JSON: true, Human: true},
 		Inputs:          cloneInputs(commonCommandInputs),
+	},
+	"version": {
+		ID:       "version",
+		Kind:     "command",
+		Summary:  "Show CLI build metadata",
+		AuthMode: string(rpcAuthNone),
+		Output:   schemaOutput{JSON: true, Human: true},
+		Inputs:   cloneInputs(commonCommandInputs),
 	},
 }
 

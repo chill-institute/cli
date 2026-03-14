@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+staged_go_files=()
+while IFS= read -r file; do
+  if [[ -n "$file" ]]; then
+    staged_go_files+=("$file")
+  fi
+done < <(git diff --cached --name-only --diff-filter=ACMR -- '*.go')
+
+if [[ "${#staged_go_files[@]}" -eq 0 ]]; then
+  exit 0
+fi
+
+printf '==> formatting staged Go files\n'
+go tool goimports -w "${staged_go_files[@]}"
+gofmt -w "${staged_go_files[@]}"
+git add -- "${staged_go_files[@]}"

@@ -8,6 +8,7 @@ Install the toolchain:
 
 ```bash
 mise install
+mise run hooks
 ```
 
 Build the CLI locally:
@@ -24,11 +25,23 @@ Run the full repo checks before opening or updating a pull request:
 mise run verify
 ```
 
+Format Go files when needed:
+
+```bash
+mise run fmt
+```
+
+The repository ships git hooks in `.githooks/`:
+
+- `pre-commit` formats staged Go files with `goimports` and `gofmt`
+- `pre-push` runs `mise run verify`
+
 ## Development Notes
 
 - `chilly` is the command-line client for `chill.institute`.
 - Prefer explicit, scriptable CLI behavior.
 - Keep human output and machine-readable output both in mind.
+- Keep `skills/chilly-cli/` in sync when install flows, auth behavior, schema output, or command surfaces change.
 
 ## Pull Requests
 

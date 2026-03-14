@@ -21,6 +21,8 @@ graph LR
 | Metadata registry | Describe public commands and linked backend procedures for agents | commands, schema surfaces |
 | Config store | Persist local auth token and API base URL | filesystem |
 | RPC client | Send JSON requests to v4 procedures, attach auth headers, map errors | `chill.institute` API |
+| Build info | Carry version, commit, and build date into released binaries | version command, release flow |
+| Release updater | Resolve GitHub releases and install matching binaries | self-update command |
 | Output renderers | Render pretty or JSON command output | command handlers |
 
 ## Command Model
@@ -35,6 +37,8 @@ graph TD
   Root --> TopMovies["list-top-movies"]
   Root --> Transfer["add-transfer"]
   Root --> User["user"]
+  Root --> Version["version"]
+  Root --> SelfUpdate["self-update"]
 ```
 
 Current command groups:
@@ -49,6 +53,8 @@ Current command groups:
 | `list-top-movies` | fetch top-movies data |
 | `add-transfer` | send transfer requests |
 | `user` | user-scoped API operations such as settings reads and writes |
+| `version` | expose build metadata and release provenance |
+| `self-update` | install a released binary over the current executable |
 
 ## Local State
 
@@ -112,6 +118,18 @@ That registry is the source of truth for:
 
 The current milestone does not fetch schema dynamically from the API. Discovery is explicit and local to the CLI repo.
 
+## Package Layout
+
+- `cmd/chilly`: process entrypoint
+- `internal/cli`: Cobra adapter layer and command orchestration
+- `internal/config`: local config persistence and normalization
+- `internal/rpc`: low-level API transport
+- `internal/buildinfo`: version metadata injected at build time
+- `internal/update`: reusable GitHub release lookup and binary replacement logic
+- `scripts/`: shared quality and install helpers used by humans, hooks, and CI
+
+This keeps CLI command glue separate from reusable transport and release modules so future SDK or MCP extraction does not need to unwind command-specific concerns.
+
 ## Boundaries
 
 - Local config is the only persistent state in this repo.
@@ -124,6 +142,13 @@ The current milestone does not fetch schema dynamically from the API. Discovery 
 - Prompts, warnings, and error output are written to `stderr`.
 - In `--output json`, failures emit a single JSON error envelope to `stderr`.
 - Exit codes are classified into usage (`2`), auth (`3`), API (`4`), and internal (`5`) failures.
+
+## Guardrails And Release Flow
+
+- Local hooks live in `.githooks/`
+- Shared quality tasks live in `mise.toml`
+- CI runs `mise run verify`
+- Tagged releases run GoReleaser, publish GitHub release artifacts, and update the Homebrew tap
 
 ## Browser Auth Flow
 
