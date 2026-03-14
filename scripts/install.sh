@@ -5,7 +5,7 @@ set -euo pipefail
 repo="chill-institute/cli"
 binary_name="chilly"
 install_dir="${INSTALL_DIR:-/usr/local/bin}"
-requested_version="${VERSION:-}"
+requested_version="${1:-${VERSION:-}}"
 
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 arch="$(uname -m)"
