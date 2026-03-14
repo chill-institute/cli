@@ -19,7 +19,7 @@ func newSearchCommand(app *appContext) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			trimmedQuery := strings.TrimSpace(query)
 			if trimmedQuery == "" {
-				return fmt.Errorf("--query is required")
+				return usageError("missing_query", "--query is required")
 			}
 
 			cfg, err := app.loadConfig()

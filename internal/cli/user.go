@@ -40,7 +40,7 @@ func newUserCommand(app *appContext) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			trimmedQuery := strings.TrimSpace(query)
 			if trimmedQuery == "" {
-				return fmt.Errorf("--query is required")
+				return usageError("missing_query", "--query is required")
 			}
 			payload := map[string]any{"query": trimmedQuery}
 			if trimmedIndexer := strings.TrimSpace(indexerID); trimmedIndexer != "" {
@@ -88,12 +88,12 @@ func newUserSettingsCommand(app *appContext) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			trimmed := strings.TrimSpace(rawSettings)
 			if trimmed == "" {
-				return fmt.Errorf("--json is required")
+				return usageError("missing_json_payload", "--json is required")
 			}
 
 			var payload map[string]any
 			if err := json.Unmarshal([]byte(trimmed), &payload); err != nil {
-				return fmt.Errorf("parse --json payload: %w", err)
+				return usageError("invalid_json_payload", "parse --json payload: %v", err)
 			}
 			return runUserRPC(app, procedureUserSaveUserSettings, map[string]any{"settings": payload})
 		},
@@ -117,7 +117,7 @@ func newUserTransferCommand(app *appContext) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			trimmed := strings.TrimSpace(transferURL)
 			if trimmed == "" {
-				return fmt.Errorf("--url is required")
+				return usageError("missing_url", "--url is required")
 			}
 			return runUserRPC(app, procedureUserAddTransfer, map[string]any{"url": trimmed})
 		},

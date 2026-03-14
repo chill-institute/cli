@@ -116,7 +116,7 @@ func TestCallReturnsStructuredAPIError(t *testing.T) {
 func TestCallMissingUserToken(t *testing.T) {
 	t.Parallel()
 
-	client := NewClient("http://localhost:8080", http.DefaultClient)
+	client := NewClient("https://api.binge.institute", http.DefaultClient)
 	_, err := client.Call(context.Background(), CallRequest{
 		Procedure: "chill.v4.UserService/GetUserProfile",
 		AuthMode:  AuthUser,

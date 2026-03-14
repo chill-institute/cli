@@ -1,0 +1,4 @@
+interface:
+  display_name: "Chilly CLI"
+  short_description: "Use chilly to operate chill.institute from the CLI"
+  default_prompt: "Use $chilly-cli to authenticate and operate chill.institute safely from the local CLI."
