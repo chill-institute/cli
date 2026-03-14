@@ -13,6 +13,96 @@ import (
 	"github.com/chill-institute/cli/internal/config"
 )
 
+func TestRunAddTransferDryRunSkipsAuthAndReturnsPreview(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	exitCode := Run([]string{
+		"--config", configPath,
+		"add-transfer",
+		"--url", "magnet:?xt=urn:btih:dryrun",
+		"--dry-run",
+		"--output", "json",
+	}, strings.NewReader(""), stdout, stderr)
+	if exitCode != int(exitCodeSuccess) {
+		t.Fatalf("exitCode = %d, want %d", exitCode, exitCodeSuccess)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal(stdout) error = %v", err)
+	}
+	if output["dry_run"] != true {
+		t.Fatalf("dry_run = %v, want true", output["dry_run"])
+	}
+	if output["command"] != "add-transfer" {
+		t.Fatalf("command = %v, want %q", output["command"], "add-transfer")
+	}
+	if output["procedure"] != procedureUserAddTransfer {
+		t.Fatalf("procedure = %v, want %q", output["procedure"], procedureUserAddTransfer)
+	}
+
+	request, ok := output["request"].(map[string]any)
+	if !ok {
+		t.Fatalf("request = %#v, want object", output["request"])
+	}
+	if request["url"] != "magnet:?xt=urn:btih:dryrun" {
+		t.Fatalf("request.url = %v, want %q", request["url"], "magnet:?xt=urn:btih:dryrun")
+	}
+}
+
+func TestRunUserSettingsSetDryRunSkipsAuthAndReturnsPreview(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	exitCode := Run([]string{
+		"--config", configPath,
+		"user", "settings", "set",
+		"--json", `{"showTopMovies":true}`,
+		"--dry-run",
+		"--output", "json",
+	}, strings.NewReader(""), stdout, stderr)
+	if exitCode != int(exitCodeSuccess) {
+		t.Fatalf("exitCode = %d, want %d", exitCode, exitCodeSuccess)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal(stdout) error = %v", err)
+	}
+	if output["dry_run"] != true {
+		t.Fatalf("dry_run = %v, want true", output["dry_run"])
+	}
+	if output["command"] != "user settings set" {
+		t.Fatalf("command = %v, want %q", output["command"], "user settings set")
+	}
+	if output["procedure"] != procedureUserSaveUserSettings {
+		t.Fatalf("procedure = %v, want %q", output["procedure"], procedureUserSaveUserSettings)
+	}
+
+	request, ok := output["request"].(map[string]any)
+	if !ok {
+		t.Fatalf("request = %#v, want object", output["request"])
+	}
+	settings, ok := request["settings"].(map[string]any)
+	if !ok {
+		t.Fatalf("request.settings = %#v, want object", request["settings"])
+	}
+	if settings["showTopMovies"] != true {
+		t.Fatalf("request.settings.showTopMovies = %v, want true", settings["showTopMovies"])
+	}
+}
+
 func TestRunReturnsUsageExitCodeAndJSONErrorEnvelope(t *testing.T) {
 	t.Parallel()
 

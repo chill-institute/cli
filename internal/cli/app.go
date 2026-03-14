@@ -38,6 +38,15 @@ type appContext struct {
 	authFlowTimeout time.Duration
 }
 
+type dryRunPreview struct {
+	Status    string       `json:"status"`
+	DryRun    bool         `json:"dry_run"`
+	Command   string       `json:"command"`
+	Procedure string       `json:"procedure"`
+	AuthMode  rpc.AuthMode `json:"auth_mode"`
+	Request   any          `json:"request"`
+}
+
 func newAppContext(opts *appOptions) *appContext {
 	return &appContext{
 		opts:            opts,
@@ -132,6 +141,17 @@ func (app *appContext) writeJSONPayload(payload any) error {
 	}
 	_, err = fmt.Fprintln(app.stdout, string(normalized))
 	return wrapInternalError("stdout_write_failed", "write output payload", err)
+}
+
+func (app *appContext) writeDryRunPreview(commandID string, procedure string, authMode rpc.AuthMode, request any) error {
+	return app.writeJSONPayload(dryRunPreview{
+		Status:    "ok",
+		DryRun:    true,
+		Command:   commandID,
+		Procedure: procedure,
+		AuthMode:  authMode,
+		Request:   request,
+	})
 }
 
 func (app *appContext) readLine(prompt string) (string, error) {

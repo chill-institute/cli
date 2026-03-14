@@ -99,6 +99,9 @@ func TestSchemaCommandSearchReturnsMetadata(t *testing.T) {
 	if output.Mutates {
 		t.Fatal("search metadata unexpectedly marked mutating")
 	}
+	if output.SupportsDryRun {
+		t.Fatal("search metadata unexpectedly supports dry run")
+	}
 }
 
 func TestSchemaProcedureSearchReturnsMetadata(t *testing.T) {
@@ -174,6 +177,44 @@ func TestAuthLoginDescribeOutputsMetadataWithoutExecuting(t *testing.T) {
 	}
 	if output.ID != "auth login" {
 		t.Fatalf("ID = %q, want %q", output.ID, "auth login")
+	}
+}
+
+func TestSchemaCommandAddTransferReturnsDryRunMetadata(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newRootCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"schema", "command", "add-transfer", "--output", "json"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output schemaEntry
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if !output.Mutates {
+		t.Fatal("add-transfer metadata should be mutating")
+	}
+	if !output.SupportsDryRun {
+		t.Fatal("add-transfer metadata should support dry run")
+	}
+
+	foundDryRun := false
+	for _, input := range output.Inputs {
+		if input.Name == "dry-run" {
+			foundDryRun = true
+			break
+		}
+	}
+	if !foundDryRun {
+		t.Fatal("add-transfer metadata missing dry-run input")
 	}
 }
 

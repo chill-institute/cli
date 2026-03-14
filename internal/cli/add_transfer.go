@@ -11,6 +11,7 @@ import (
 
 func newAddTransferCommand(app *appContext) *cobra.Command {
 	var transferURL string
+	var dryRun bool
 
 	command := &cobra.Command{
 		Use:   "add-transfer",
@@ -19,6 +20,10 @@ func newAddTransferCommand(app *appContext) *cobra.Command {
 			trimmedURL := strings.TrimSpace(transferURL)
 			if trimmedURL == "" {
 				return usageError("missing_url", "--url is required")
+			}
+			request := map[string]any{"url": trimmedURL}
+			if dryRun {
+				return app.writeDryRunPreview("add-transfer", procedureUserAddTransfer, rpc.AuthUser, request)
 			}
 
 			cfg, err := app.loadConfig()
@@ -34,7 +39,7 @@ func newAddTransferCommand(app *appContext) *cobra.Command {
 				context.Background(),
 				cfg,
 				procedureUserAddTransfer,
-				map[string]any{"url": trimmedURL},
+				request,
 				rpc.AuthUser,
 				token,
 			)
@@ -46,5 +51,6 @@ func newAddTransferCommand(app *appContext) *cobra.Command {
 	}
 
 	command.Flags().StringVar(&transferURL, "url", "", "magnet or URL to add as transfer")
+	command.Flags().BoolVar(&dryRun, "dry-run", false, "validate input and print the request without executing it")
 	return command
 }

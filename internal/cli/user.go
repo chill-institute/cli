@@ -82,6 +82,7 @@ func newUserSettingsCommand(app *appContext) *cobra.Command {
 	})
 
 	var rawSettings string
+	var dryRun bool
 	setCommand := &cobra.Command{
 		Use:   "set",
 		Short: "Save full user settings JSON payload",
@@ -95,10 +96,15 @@ func newUserSettingsCommand(app *appContext) *cobra.Command {
 			if err := json.Unmarshal([]byte(trimmed), &payload); err != nil {
 				return usageError("invalid_json_payload", "parse --json payload: %v", err)
 			}
-			return runUserRPC(app, procedureUserSaveUserSettings, map[string]any{"settings": payload})
+			request := map[string]any{"settings": payload}
+			if dryRun {
+				return app.writeDryRunPreview("user settings set", procedureUserSaveUserSettings, rpc.AuthUser, request)
+			}
+			return runUserRPC(app, procedureUserSaveUserSettings, request)
 		},
 	}
 	setCommand.Flags().StringVar(&rawSettings, "json", "", "full settings object JSON")
+	setCommand.Flags().BoolVar(&dryRun, "dry-run", false, "validate input and print the request without executing it")
 	settingsCommand.AddCommand(setCommand)
 
 	return settingsCommand
@@ -111,6 +117,7 @@ func newUserTransferCommand(app *appContext) *cobra.Command {
 	}
 
 	var transferURL string
+	var dryRun bool
 	addCommand := &cobra.Command{
 		Use:   "add",
 		Short: "Add transfer",
@@ -119,10 +126,15 @@ func newUserTransferCommand(app *appContext) *cobra.Command {
 			if trimmed == "" {
 				return usageError("missing_url", "--url is required")
 			}
-			return runUserRPC(app, procedureUserAddTransfer, map[string]any{"url": trimmed})
+			request := map[string]any{"url": trimmed}
+			if dryRun {
+				return app.writeDryRunPreview("user transfer add", procedureUserAddTransfer, rpc.AuthUser, request)
+			}
+			return runUserRPC(app, procedureUserAddTransfer, request)
 		},
 	}
 	addCommand.Flags().StringVar(&transferURL, "url", "", "magnet or URL")
+	addCommand.Flags().BoolVar(&dryRun, "dry-run", false, "validate input and print the request without executing it")
 	transferCommand.AddCommand(addCommand)
 
 	return transferCommand

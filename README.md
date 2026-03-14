@@ -58,6 +58,9 @@ chilly search --query "dune" --output json
 
 # 5) add a transfer
 chilly add-transfer --url "magnet:?xt=urn:btih:..." --output json
+
+# 6) preview a mutation without executing it
+chilly add-transfer --url "magnet:?xt=urn:btih:..." --dry-run --output json
 ```
 
 ## Common Commands
@@ -82,7 +85,9 @@ chilly settings show --output json
 # user commands
 chilly list-top-movies --output json
 chilly user settings get --output json
+chilly add-transfer --url "magnet:?xt=..." --dry-run --output json
 chilly user settings set --json '{"showTopMovies":true}' --output json
+chilly user settings set --json '{"showTopMovies":true}' --dry-run --output json
 ```
 
 ## Config And Auth
@@ -107,6 +112,8 @@ The browser is still required for put.io authentication. `--no-browser` only dis
 ## Agent-First Contract
 
 `chilly schema` exposes local metadata for public commands and linked backend procedures used by the CLI.
+
+Mutating commands that support `--dry-run` return a local preview of the request instead of touching auth state or the API.
 
 Examples:
 
