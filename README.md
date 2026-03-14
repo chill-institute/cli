@@ -15,4 +15,4 @@ Please read the [contributing guide](./CONTRIBUTING.md).
 
 ## License
 
-MIT. See [LICENSE](./LICENSE).
+Licensed under the [MIT License](./LICENSE).
