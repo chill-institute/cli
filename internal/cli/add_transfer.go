@@ -18,7 +18,7 @@ func newAddTransferCommand(app *appContext) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			trimmedURL := strings.TrimSpace(transferURL)
 			if trimmedURL == "" {
-				return fmt.Errorf("--url is required")
+				return usageError("missing_url", "--url is required")
 			}
 
 			cfg, err := app.loadConfig()

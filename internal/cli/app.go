@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/chill-institute/cli/internal/config"
 	"github.com/chill-institute/cli/internal/rpc"
@@ -29,25 +30,31 @@ type appOptions struct {
 }
 
 type appContext struct {
-	opts    *appOptions
-	stdin   io.Reader
-	stdout  io.Writer
-	stderr  io.Writer
-	openURL func(string) error
+	opts            *appOptions
+	stdin           io.Reader
+	stdout          io.Writer
+	stderr          io.Writer
+	openURL         func(string) error
+	authFlowTimeout time.Duration
 }
 
 func newAppContext(opts *appOptions) *appContext {
 	return &appContext{
-		opts:    opts,
-		stdin:   os.Stdin,
-		stdout:  os.Stdout,
-		stderr:  os.Stderr,
-		openURL: openBrowser,
+		opts:            opts,
+		stdin:           os.Stdin,
+		stdout:          os.Stdout,
+		stderr:          os.Stderr,
+		openURL:         openBrowser,
+		authFlowTimeout: 2 * time.Minute,
 	}
 }
 
 func (app *appContext) configStore() (*config.Store, error) {
-	return config.NewStore(app.opts.configPath)
+	store, err := config.NewStore(app.opts.configPath)
+	if err != nil {
+		return nil, wrapInternalError("config_store_init_failed", "initialize config store", err)
+	}
+	return store, nil
 }
 
 func (app *appContext) loadConfig() (config.Config, error) {
@@ -57,7 +64,7 @@ func (app *appContext) loadConfig() (config.Config, error) {
 	}
 	cfg, err := store.Load()
 	if err != nil {
-		return config.Config{}, err
+		return config.Config{}, wrapInternalError("config_load_failed", "load config", err)
 	}
 	if override := strings.TrimSpace(app.opts.apiURL); override != "" {
 		cfg.APIBaseURL = override
@@ -70,7 +77,7 @@ func (app *appContext) saveConfig(cfg config.Config) error {
 	if err != nil {
 		return err
 	}
-	return store.Save(cfg)
+	return wrapInternalError("config_save_failed", "save config", store.Save(cfg))
 }
 
 func (app *appContext) rpcClient(cfg config.Config) *rpc.Client {
@@ -80,7 +87,7 @@ func (app *appContext) rpcClient(cfg config.Config) *rpc.Client {
 func (app *appContext) userToken(cfg config.Config) (string, error) {
 	token := strings.TrimSpace(cfg.AuthToken)
 	if token == "" {
-		return "", fmt.Errorf("missing auth token: run `chilly auth login`")
+		return "", authError("missing_auth_token", "missing auth token: run `chilly auth login`")
 	}
 	return token, nil
 }
@@ -93,34 +100,38 @@ func (app *appContext) callRPC(
 	authMode rpc.AuthMode,
 	authToken string,
 ) (rpc.CallResponse, error) {
-	return app.rpcClient(cfg).Call(ctx, rpc.CallRequest{
+	response, err := app.rpcClient(cfg).Call(ctx, rpc.CallRequest{
 		Procedure: procedure,
 		Body:      body,
 		AuthMode:  authMode,
 		AuthToken: authToken,
 	})
+	if err != nil {
+		return rpc.CallResponse{}, err
+	}
+	return response, nil
 }
 
 func (app *appContext) writeResponseBody(body []byte) error {
 	normalized, err := normalizeJSON(body, app.opts.output)
 	if err != nil {
-		return err
+		return wrapInternalError("response_normalize_failed", "normalize response output", err)
 	}
 	_, err = fmt.Fprintln(app.stdout, string(normalized))
-	return err
+	return wrapInternalError("stdout_write_failed", "write response output", err)
 }
 
 func (app *appContext) writeJSONPayload(payload any) error {
 	encoded, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("marshal output payload: %w", err)
+		return wrapInternalError("output_marshal_failed", "marshal output payload", err)
 	}
 	normalized, err := normalizeJSON(encoded, app.opts.output)
 	if err != nil {
-		return err
+		return wrapInternalError("output_normalize_failed", "normalize output payload", err)
 	}
 	_, err = fmt.Fprintln(app.stdout, string(normalized))
-	return err
+	return wrapInternalError("stdout_write_failed", "write output payload", err)
 }
 
 func (app *appContext) readLine(prompt string) (string, error) {
