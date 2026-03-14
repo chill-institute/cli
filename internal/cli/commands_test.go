@@ -234,3 +234,68 @@ func TestSettingsShowRedactsToken(t *testing.T) {
 		t.Fatalf("auth_token = %v, want %q", output["auth_token"], redactedToken)
 	}
 }
+
+func TestListTopMoviesUsesStoredToken(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/v4/chill.v4.UserService/GetTopMovies" {
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+		if got := request.Header.Get("Authorization"); got != "Bearer saved-token" {
+			t.Fatalf("Authorization = %q", got)
+		}
+		_, _ = writer.Write([]byte(`{"movies":[{"title":"Dune"}]}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newListTopMoviesCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs(nil)
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	if !strings.Contains(stdout.String(), `"title":"Dune"`) {
+		t.Fatalf("stdout = %q", stdout.String())
+	}
+}
+
+func TestSettingsPathOutputsResolvedStorePath(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	stdout := &bytes.Buffer{}
+	command := newSettingsCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"path"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if output["path"] != configPath {
+		t.Fatalf("path = %v, want %q", output["path"], configPath)
+	}
+}

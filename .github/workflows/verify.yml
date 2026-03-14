@@ -5,10 +5,12 @@ on:
     branches:
       - main
   pull_request:
+  workflow_dispatch:
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository

@@ -30,6 +30,10 @@ chilly schema --output json
 chilly schema command search --output json
 chilly search --describe --output json
 
+# inspect build metadata and release availability
+chilly version --output json
+chilly self-update --check --output json
+
 # local CLI settings
 chilly settings path
 chilly settings get api-base-url
@@ -47,6 +51,19 @@ chilly user settings set --json '{"showTopMovies":true}'
 # logout
 chilly auth logout
 ```
+
+## Install And Update
+
+Preferred install paths:
+
+- Homebrew: `brew install chill-institute/tap/chilly`
+- release installer: `curl -fsSL https://raw.githubusercontent.com/chill-institute/cli/main/scripts/install.sh | sh`
+
+Update commands:
+
+- `chilly self-update --check --output json`
+- `chilly self-update`
+- `chilly self-update --version v0.1.0`
 
 ## Local Settings
 
@@ -104,3 +121,13 @@ Current exit classes:
 - `3` auth missing or auth invalid
 - `4` API error from the backend
 - `5` internal runtime failure
+
+## Quality Guardrails
+
+Shared local and CI checks run through `mise`:
+
+- `mise run fmt:check`
+- `mise run lint`
+- `mise run coverage`
+- `mise run security`
+- `mise run verify`

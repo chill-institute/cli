@@ -57,7 +57,9 @@ func TestAuthLoginBrowserFlowCapturesLoopbackToken(t *testing.T) {
 			if err != nil {
 				t.Fatalf("http.Get(successURL) error = %v", err)
 			}
-			defer callbackResponse.Body.Close()
+			defer func() {
+				_ = callbackResponse.Body.Close()
+			}()
 
 			if callbackResponse.StatusCode != http.StatusOK {
 				t.Fatalf("callback status = %d, want %d", callbackResponse.StatusCode, http.StatusOK)
@@ -78,7 +80,9 @@ func TestAuthLoginBrowserFlowCapturesLoopbackToken(t *testing.T) {
 			if err != nil {
 				t.Fatalf("http.Post(tokenEndpoint) error = %v", err)
 			}
-			defer postResponse.Body.Close()
+			defer func() {
+				_ = postResponse.Body.Close()
+			}()
 
 			if postResponse.StatusCode != http.StatusOK {
 				t.Fatalf("token post status = %d, want %d", postResponse.StatusCode, http.StatusOK)

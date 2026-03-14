@@ -128,3 +128,16 @@ func TestCallMissingUserToken(t *testing.T) {
 		t.Fatalf("error = %v", err)
 	}
 }
+
+func TestAPIErrorErrorIncludesBodyWhenEnvelopeMissing(t *testing.T) {
+	t.Parallel()
+
+	err := APIError{
+		StatusCode: http.StatusBadGateway,
+		Body:       "upstream failed",
+	}
+
+	if got := err.Error(); got != "api error (502): upstream failed" {
+		t.Fatalf("Error() = %q", got)
+	}
+}

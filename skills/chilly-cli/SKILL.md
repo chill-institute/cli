@@ -14,6 +14,7 @@ Use `chilly` as the local command-line entrypoint for chill.institute. Prefer `-
 3. Add `--output json` whenever the result will feed another tool or decision.
 4. Use `settings get api-base-url` before assuming which hosted environment is active.
 5. Use `schema` or `--describe` when you need to inspect the local CLI contract before running a command.
+6. Use `version` and `self-update --check` when you need release provenance before proposing an upgrade.
 
 ## Auth
 
@@ -38,6 +39,10 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `go run ./cmd/chilly schema procedure chill.v4.UserService/Search --output json`
 - Describe a command without executing it:
   `go run ./cmd/chilly search --describe --output json`
+- Show installed build metadata:
+  `go run ./cmd/chilly version --output json`
+- Check whether a newer release exists:
+  `go run ./cmd/chilly self-update --check --output json`
 
 ## Common Commands
 
@@ -55,6 +60,8 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `go run ./cmd/chilly add-transfer --url "magnet:?xt=..." --output json`
 - Read user settings:
   `go run ./cmd/chilly user settings get --output json`
+- Show build metadata:
+  `go run ./cmd/chilly version --output json`
 
 Read `references/commands.md` for a fuller command cookbook and current gotchas.
 

@@ -21,6 +21,24 @@ func TestDefaultPathUsesXDGConfigHome(t *testing.T) {
 	}
 }
 
+func TestDefaultPathFallsBackToUserConfigDir(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", "")
+
+	originalUserConfigDir := userConfigDir
+	userConfigDir = func() (string, error) { return "/tmp/chilly-user-config", nil }
+	t.Cleanup(func() { userConfigDir = originalUserConfigDir })
+
+	path, err := DefaultPath()
+	if err != nil {
+		t.Fatalf("DefaultPath() error = %v", err)
+	}
+
+	want := filepath.Join("/tmp/chilly-user-config", appDirName, configFileName)
+	if path != want {
+		t.Fatalf("path = %q, want %q", path, want)
+	}
+}
+
 func TestLoadMissingConfigReturnsDefaults(t *testing.T) {
 	store, err := NewStore(filepath.Join(t.TempDir(), "missing.json"))
 	if err != nil {
@@ -80,5 +98,19 @@ func TestSaveAndLoadRoundTrip(t *testing.T) {
 	}
 	if !strings.Contains(string(raw), "\n") {
 		t.Fatal("expected saved config to be pretty-printed")
+	}
+}
+
+func TestNewStoreUsesDefaultPathWhenEmpty(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", "/tmp/chilly-store-default")
+
+	store, err := NewStore(" ")
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+
+	want := filepath.Join("/tmp/chilly-store-default", appDirName, configFileName)
+	if store.Path() != want {
+		t.Fatalf("Path() = %q, want %q", store.Path(), want)
 	}
 }

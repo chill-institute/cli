@@ -109,7 +109,9 @@ func (client Client) Call(ctx context.Context, req CallRequest) (CallResponse, e
 	if err != nil {
 		return CallResponse{}, fmt.Errorf("execute request: %w", err)
 	}
-	defer httpResponse.Body.Close()
+	defer func() {
+		_ = httpResponse.Body.Close()
+	}()
 
 	responseBody, err := io.ReadAll(httpResponse.Body)
 	if err != nil {
