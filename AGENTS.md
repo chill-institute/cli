@@ -1,7 +1,5 @@
 # cli Agent Notes
 
-Keep this file short and repo-specific. Shared workspace rules live in [chill-institute/runbook/AGENTS.md](https://github.com/chill-institute/runbook/blob/main/AGENTS.md).
-
 ## Purpose
 
 `cli` is the `chill.institute` command line client and should evolve as an agent-first SDK surface, not only a human shell tool.
