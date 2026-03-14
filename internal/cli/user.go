@@ -16,13 +16,20 @@ func newUserCommand(app *appContext) *cobra.Command {
 		Short: "User RPC commands (Bearer auth)",
 	}
 
-	command.AddCommand(&cobra.Command{
+	var profileFields string
+	profileCommand := &cobra.Command{
 		Use:   "profile",
 		Short: "Alias for whoami",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return newWhoamiCommand(app).RunE(cmd, args)
+			selection, err := parseFieldSelection(profileFields)
+			if err != nil {
+				return err
+			}
+			return runUserRPCWithFields(app, procedureUserGetUserProfile, map[string]any{}, selection)
 		},
-	})
+	}
+	profileCommand.Flags().StringVar(&profileFields, "fields", "", "comma-separated field paths to include in the output")
+	command.AddCommand(profileCommand)
 
 	command.AddCommand(&cobra.Command{
 		Use:   "indexers",
@@ -34,6 +41,7 @@ func newUserCommand(app *appContext) *cobra.Command {
 
 	var query string
 	var indexerID string
+	var searchFields string
 	searchCommand := &cobra.Command{
 		Use:   "search",
 		Short: "User search",
@@ -42,24 +50,36 @@ func newUserCommand(app *appContext) *cobra.Command {
 			if trimmedQuery == "" {
 				return usageError("missing_query", "--query is required")
 			}
+			selection, err := parseFieldSelection(searchFields)
+			if err != nil {
+				return err
+			}
 			payload := map[string]any{"query": trimmedQuery}
 			if trimmedIndexer := strings.TrimSpace(indexerID); trimmedIndexer != "" {
 				payload["indexer_id"] = trimmedIndexer
 			}
-			return runUserRPC(app, procedureUserSearch, payload)
+			return runUserRPCWithFields(app, procedureUserSearch, payload, selection)
 		},
 	}
 	searchCommand.Flags().StringVar(&query, "query", "", "search query")
 	searchCommand.Flags().StringVar(&indexerID, "indexer-id", "", "optional indexer id")
+	searchCommand.Flags().StringVar(&searchFields, "fields", "", "comma-separated field paths to include in the output")
 	command.AddCommand(searchCommand)
 
-	command.AddCommand(&cobra.Command{
+	var topMoviesFields string
+	topMoviesCommand := &cobra.Command{
 		Use:   "top-movies",
 		Short: "List top movies from user profile",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runUserRPC(app, procedureUserGetTopMovies, map[string]any{})
+			selection, err := parseFieldSelection(topMoviesFields)
+			if err != nil {
+				return err
+			}
+			return runUserRPCWithFields(app, procedureUserGetTopMovies, map[string]any{}, selection)
 		},
-	})
+	}
+	topMoviesCommand.Flags().StringVar(&topMoviesFields, "fields", "", "comma-separated field paths to include in the output")
+	command.AddCommand(topMoviesCommand)
 
 	command.AddCommand(newUserSettingsCommand(app))
 	command.AddCommand(newUserTransferCommand(app))
@@ -73,13 +93,20 @@ func newUserSettingsCommand(app *appContext) *cobra.Command {
 		Short: "User settings operations",
 	}
 
-	settingsCommand.AddCommand(&cobra.Command{
+	var getFields string
+	getCommand := &cobra.Command{
 		Use:   "get",
 		Short: "Fetch user settings",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runUserRPC(app, procedureUserGetUserSettings, map[string]any{})
+			selection, err := parseFieldSelection(getFields)
+			if err != nil {
+				return err
+			}
+			return runUserRPCWithFields(app, procedureUserGetUserSettings, map[string]any{}, selection)
 		},
-	})
+	}
+	getCommand.Flags().StringVar(&getFields, "fields", "", "comma-separated field paths to include in the output")
+	settingsCommand.AddCommand(getCommand)
 
 	var rawSettings string
 	var dryRun bool
@@ -141,6 +168,10 @@ func newUserTransferCommand(app *appContext) *cobra.Command {
 }
 
 func runUserRPC(app *appContext, procedure string, body any) error {
+	return runUserRPCWithFields(app, procedure, body, nil)
+}
+
+func runUserRPCWithFields(app *appContext, procedure string, body any, selection *fieldSelection) error {
 	cfg, err := app.loadConfig()
 	if err != nil {
 		return err
@@ -161,5 +192,5 @@ func runUserRPC(app *appContext, procedure string, body any) error {
 	if err != nil {
 		return fmt.Errorf("user rpc call: %w", err)
 	}
-	return app.writeResponseBody(response.Body)
+	return app.writeSelectedResponseBody(response.Body, selection)
 }

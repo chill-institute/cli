@@ -17,6 +17,7 @@ Use `chilly` as the local command-line entrypoint for chill.institute. Prefer `-
 6. Use `schema` or `--describe` when you need to inspect the local CLI contract before running a command.
 7. Use `version` and `self-update --check` when you need release provenance before proposing an upgrade.
 8. Use `--dry-run` on supported mutating commands when you need to preview a request safely.
+9. Use `--fields` on supported read commands when you only need a stable subset of the JSON response.
 
 ## Auth
 
@@ -56,14 +57,20 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly settings set api-base-url https://api.chill.institute`
 - Search:
   `chilly search --query "dune" --output json`
+- Search with a smaller response:
+  `chilly search --query "dune" --fields results.title --output json`
 - List top movies:
   `chilly list-top-movies --output json`
+- List only movie titles:
+  `chilly list-top-movies --fields movies.title --output json`
 - Add transfer:
   `chilly add-transfer --url "magnet:?xt=..." --output json`
 - Preview transfer request without executing it:
   `chilly add-transfer --url "magnet:?xt=..." --dry-run --output json`
 - Read user settings:
   `chilly user settings get --output json`
+- Read only selected settings:
+  `chilly user settings get --fields showTopMovies,sortBy --output json`
 - Preview full user settings update:
   `chilly user settings set --json '{"showTopMovies":true}' --dry-run --output json`
 - Show build metadata:
@@ -74,6 +81,7 @@ Read `references/commands.md` for a fuller command cookbook and current gotchas.
 ## Safety Rules
 
 - Prefer `--output json` for automation.
+- Prefer `--fields` when a command supports it and you only need a subset of the payload.
 - Check the active API base URL before mutating anything.
 - Prefer `--dry-run` before a mutation when you only need the request shape or want a safe preview.
 - Expect prompts and browser-login hints on `stderr`; parse only `stdout`.

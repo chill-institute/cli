@@ -122,7 +122,16 @@ func (app *appContext) callRPC(
 }
 
 func (app *appContext) writeResponseBody(body []byte) error {
-	normalized, err := normalizeJSON(body, app.opts.output)
+	normalized, err := normalizeJSON(body, app.opts.output, nil)
+	if err != nil {
+		return wrapInternalError("response_normalize_failed", "normalize response output", err)
+	}
+	_, err = fmt.Fprintln(app.stdout, string(normalized))
+	return wrapInternalError("stdout_write_failed", "write response output", err)
+}
+
+func (app *appContext) writeSelectedResponseBody(body []byte, selection *fieldSelection) error {
+	normalized, err := normalizeJSON(body, app.opts.output, selection)
 	if err != nil {
 		return wrapInternalError("response_normalize_failed", "normalize response output", err)
 	}
@@ -135,7 +144,7 @@ func (app *appContext) writeJSONPayload(payload any) error {
 	if err != nil {
 		return wrapInternalError("output_marshal_failed", "marshal output payload", err)
 	}
-	normalized, err := normalizeJSON(encoded, app.opts.output)
+	normalized, err := normalizeJSON(encoded, app.opts.output, nil)
 	if err != nil {
 		return wrapInternalError("output_normalize_failed", "normalize output payload", err)
 	}
@@ -166,7 +175,7 @@ func (app *appContext) readLine(prompt string) (string, error) {
 	return strings.TrimSpace(line), nil
 }
 
-func normalizeJSON(raw []byte, mode string) ([]byte, error) {
+func normalizeJSON(raw []byte, mode string, selection *fieldSelection) ([]byte, error) {
 	trimmed := bytes.TrimSpace(raw)
 	if len(trimmed) == 0 {
 		return []byte("{}"), nil
@@ -176,6 +185,7 @@ func normalizeJSON(raw []byte, mode string) ([]byte, error) {
 	if err := json.Unmarshal(trimmed, &value); err != nil {
 		return nil, fmt.Errorf("invalid json response: %w", err)
 	}
+	value = selection.apply(value)
 
 	if mode == outputJSON {
 		return json.Marshal(value)

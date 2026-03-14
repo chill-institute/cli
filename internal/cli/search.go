@@ -12,6 +12,7 @@ import (
 func newSearchCommand(app *appContext) *cobra.Command {
 	var query string
 	var indexerID string
+	var fields string
 
 	command := &cobra.Command{
 		Use:   "search",
@@ -20,6 +21,10 @@ func newSearchCommand(app *appContext) *cobra.Command {
 			trimmedQuery := strings.TrimSpace(query)
 			if trimmedQuery == "" {
 				return usageError("missing_query", "--query is required")
+			}
+			selection, err := parseFieldSelection(fields)
+			if err != nil {
+				return err
 			}
 
 			cfg, err := app.loadConfig()
@@ -47,11 +52,12 @@ func newSearchCommand(app *appContext) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("search: %w", err)
 			}
-			return app.writeResponseBody(response.Body)
+			return app.writeSelectedResponseBody(response.Body, selection)
 		},
 	}
 
 	command.Flags().StringVar(&query, "query", "", "search query")
 	command.Flags().StringVar(&indexerID, "indexer-id", "", "optional indexer id")
+	command.Flags().StringVar(&fields, "fields", "", "comma-separated field paths to include in the output")
 	return command
 }

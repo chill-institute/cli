@@ -56,10 +56,13 @@ chilly schema --output json
 # 4) search
 chilly search --query "dune" --output json
 
-# 5) add a transfer
+# 5) narrow a read response to the fields you need
+chilly search --query "dune" --fields results.title --output json
+
+# 6) add a transfer
 chilly add-transfer --url "magnet:?xt=urn:btih:..." --output json
 
-# 6) preview a mutation without executing it
+# 7) preview a mutation without executing it
 chilly add-transfer --url "magnet:?xt=urn:btih:..." --dry-run --output json
 ```
 
@@ -74,6 +77,12 @@ chilly auth logout --output json
 # discovery
 chilly schema command search --output json
 chilly search --describe --output json
+
+# read shaping
+chilly whoami --fields username,email --output json
+chilly search --query "dune" --fields results.title,results.magnetLink --output json
+chilly list-top-movies --fields movies.title --output json
+chilly user settings get --fields showTopMovies,sortBy --output json
 
 # settings
 chilly settings path --output json
@@ -114,6 +123,7 @@ The browser is still required for put.io authentication. `--no-browser` only dis
 `chilly schema` exposes local metadata for public commands and linked backend procedures used by the CLI.
 
 Mutating commands that support `--dry-run` return a local preview of the request instead of touching auth state or the API.
+Read commands that support `--fields` return only the selected paths from the JSON response.
 
 Examples:
 

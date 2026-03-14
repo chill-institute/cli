@@ -54,16 +54,24 @@ Fresh configs default to `https://api.binge.institute`. Saved local config can o
 
 - Search:
   `chilly search --query "blade runner" --output json`
+- Search with field selection:
+  `chilly search --query "blade runner" --fields results.title,results.magnetLink --output json`
 - Search with a specific indexer:
   `chilly search --query "blade runner" --indexer-id <id> --output json`
 - User profile:
   `chilly whoami --output json`
+- User profile with selected fields:
+  `chilly whoami --fields username,email --output json`
 - User indexers:
   `chilly user indexers --output json`
 - Top movies:
   `chilly list-top-movies --output json`
+- Top movies with selected fields:
+  `chilly list-top-movies --fields movies.title --output json`
 - User settings:
   `chilly user settings get --output json`
+- User settings with selected fields:
+  `chilly user settings get --fields showTopMovies,sortBy --output json`
 
 ## Mutating Commands
 

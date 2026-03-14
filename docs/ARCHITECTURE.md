@@ -110,13 +110,14 @@ The CLI keeps a local metadata registry for:
 - public command schemas
 - backend procedure schemas linked from those commands
 - dry-run eligibility for selected mutating surfaces
+- field-selection eligibility for selected read surfaces
 
 That registry is the source of truth for:
 
 - `chilly schema`
 - `chilly <command> --describe`
 - current `--dry-run` support for selected mutating commands
-- future field-selection eligibility
+- current `--fields` support for selected read commands
 
 The current milestone does not fetch schema dynamically from the API. Discovery is explicit and local to the CLI repo.
 
@@ -146,6 +147,8 @@ This keeps CLI command glue separate from reusable transport and release modules
 - Exit codes are classified into usage (`2`), auth (`3`), API (`4`), and internal (`5`) failures.
 
 For supported mutating commands, `--dry-run` validates local input and writes a deterministic request preview to `stdout` without loading auth or calling the API.
+
+For supported read commands, `--fields` applies a client-side field mask to the JSON response before rendering it to `stdout`.
 
 ## Guardrails And Release Flow
 

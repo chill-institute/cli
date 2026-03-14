@@ -102,6 +102,9 @@ func TestSchemaCommandSearchReturnsMetadata(t *testing.T) {
 	if output.SupportsDryRun {
 		t.Fatal("search metadata unexpectedly supports dry run")
 	}
+	if !output.SupportsFields {
+		t.Fatal("search metadata should support field selection")
+	}
 }
 
 func TestSchemaProcedureSearchReturnsMetadata(t *testing.T) {
@@ -215,6 +218,41 @@ func TestSchemaCommandAddTransferReturnsDryRunMetadata(t *testing.T) {
 	}
 	if !foundDryRun {
 		t.Fatal("add-transfer metadata missing dry-run input")
+	}
+}
+
+func TestSchemaCommandWhoamiReturnsFieldSelectionMetadata(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newRootCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"schema", "command", "whoami", "--output", "json"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output schemaEntry
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if !output.SupportsFields {
+		t.Fatal("whoami metadata should support fields")
+	}
+
+	foundFields := false
+	for _, input := range output.Inputs {
+		if input.Name == "fields" {
+			foundFields = true
+			break
+		}
+	}
+	if !foundFields {
+		t.Fatal("whoami metadata missing fields input")
 	}
 }
 

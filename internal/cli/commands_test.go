@@ -158,6 +158,58 @@ func TestSearchCommandUsesStoredToken(t *testing.T) {
 	}
 }
 
+func TestSearchCommandFieldsFiltersResponse(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = writer.Write([]byte(`{"results":[{"title":"Dune","magnetLink":"magnet:?xt=urn:btih:dune","size":"1.4 GB"}],"request_id":"req-123"}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newSearchCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"--query", "dune", "--fields", "results.title,request_id"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("output json decode error: %v", err)
+	}
+	if _, ok := output["request_id"]; !ok {
+		t.Fatal("expected request_id in filtered output")
+	}
+	results, ok := output["results"].([]any)
+	if !ok || len(results) != 1 {
+		t.Fatalf("results = %#v", output["results"])
+	}
+	first, ok := results[0].(map[string]any)
+	if !ok {
+		t.Fatalf("first result = %#v", results[0])
+	}
+	if first["title"] != "Dune" {
+		t.Fatalf("first.title = %v", first["title"])
+	}
+	if _, ok := first["magnetLink"]; ok {
+		t.Fatalf("unexpected magnetLink in %#v", first)
+	}
+}
+
 func TestSettingsSetAndGetAPIBaseURL(t *testing.T) {
 	t.Parallel()
 
@@ -275,6 +327,40 @@ func TestListTopMoviesUsesStoredToken(t *testing.T) {
 	}
 }
 
+func TestListTopMoviesFieldsFiltersResponse(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = writer.Write([]byte(`{"movies":[{"title":"Dune","year":2021}]}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newListTopMoviesCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"--fields", "movies.title"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	if strings.Contains(stdout.String(), `"year"`) {
+		t.Fatalf("stdout should not include year: %q", stdout.String())
+	}
+}
+
 func TestSettingsPathOutputsResolvedStorePath(t *testing.T) {
 	t.Parallel()
 
@@ -297,5 +383,90 @@ func TestSettingsPathOutputsResolvedStorePath(t *testing.T) {
 	}
 	if output["path"] != configPath {
 		t.Fatalf("path = %v, want %q", output["path"], configPath)
+	}
+}
+
+func TestWhoamiFieldsFiltersResponse(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = writer.Write([]byte(`{"username":"dunefan","email":"dune@example.com","userId":"123"}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newWhoamiCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"--fields", "username,email"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("output json decode error: %v", err)
+	}
+	if output["username"] != "dunefan" || output["email"] != "dune@example.com" {
+		t.Fatalf("output = %#v", output)
+	}
+	if _, ok := output["userId"]; ok {
+		t.Fatalf("unexpected userId in %#v", output)
+	}
+}
+
+func TestUserSettingsGetFieldsFiltersResponse(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/v4/chill.v4.UserService/GetUserSettings" {
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+		_, _ = writer.Write([]byte(`{"showTopMovies":true,"sortBy":"seeders","sortDirection":"desc"}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newUserCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"settings", "get", "--fields", "showTopMovies,sortBy"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("output json decode error: %v", err)
+	}
+	if output["showTopMovies"] != true || output["sortBy"] != "seeders" {
+		t.Fatalf("output = %#v", output)
+	}
+	if _, ok := output["sortDirection"]; ok {
+		t.Fatalf("unexpected sortDirection in %#v", output)
 	}
 }

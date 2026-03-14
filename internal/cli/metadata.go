@@ -24,6 +24,7 @@ type schemaEntry struct {
 	AuthMode        string        `json:"auth_mode"`
 	Mutates         bool          `json:"mutates"`
 	SupportsDryRun  bool          `json:"supports_dry_run"`
+	SupportsFields  bool          `json:"supports_fields"`
 	LinkedProcedure string        `json:"linked_procedure,omitempty"`
 	Inputs          []schemaInput `json:"inputs,omitempty"`
 	Output          schemaOutput  `json:"output"`
@@ -94,9 +95,12 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Kind:            "command",
 		Summary:         "List top movies for your profile",
 		AuthMode:        string(rpcAuthUser),
+		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTopMovies,
 		Output:          schemaOutput{JSON: true, Human: true},
-		Inputs:          cloneInputs(commonCommandInputs),
+		Inputs: appendInputs(
+			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
+		),
 	},
 	"schema": {
 		ID:       "schema",
@@ -131,11 +135,13 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Kind:            "command",
 		Summary:         "Search torrents using your user profile settings",
 		AuthMode:        string(rpcAuthUser),
+		SupportsFields:  true,
 		LinkedProcedure: procedureUserSearch,
 		Output:          schemaOutput{JSON: true, Human: true},
 		Inputs: appendInputs(
 			schemaInput{Name: "query", Type: "string", Required: true, Description: "search query"},
 			schemaInput{Name: "indexer-id", Type: "string", Description: "optional indexer id"},
+			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
 	},
 	"self-update": {
@@ -218,20 +224,25 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Kind:            "command",
 		Summary:         "Alias for whoami",
 		AuthMode:        string(rpcAuthUser),
+		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetUserProfile,
 		Output:          schemaOutput{JSON: true, Human: true},
-		Inputs:          cloneInputs(commonCommandInputs),
+		Inputs: appendInputs(
+			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
+		),
 	},
 	"user search": {
 		ID:              "user search",
 		Kind:            "command",
 		Summary:         "User search",
 		AuthMode:        string(rpcAuthUser),
+		SupportsFields:  true,
 		LinkedProcedure: procedureUserSearch,
 		Output:          schemaOutput{JSON: true, Human: true},
 		Inputs: appendInputs(
 			schemaInput{Name: "query", Type: "string", Required: true, Description: "search query"},
 			schemaInput{Name: "indexer-id", Type: "string", Description: "optional indexer id"},
+			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
 	},
 	"user settings": {
@@ -247,9 +258,12 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Kind:            "command",
 		Summary:         "Fetch user settings",
 		AuthMode:        string(rpcAuthUser),
+		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetUserSettings,
 		Output:          schemaOutput{JSON: true, Human: true},
-		Inputs:          cloneInputs(commonCommandInputs),
+		Inputs: appendInputs(
+			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
+		),
 	},
 	"user settings set": {
 		ID:              "user settings set",
@@ -270,9 +284,12 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Kind:            "command",
 		Summary:         "List top movies from user profile",
 		AuthMode:        string(rpcAuthUser),
+		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTopMovies,
 		Output:          schemaOutput{JSON: true, Human: true},
-		Inputs:          cloneInputs(commonCommandInputs),
+		Inputs: appendInputs(
+			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
+		),
 	},
 	"user transfer": {
 		ID:       "user transfer",
@@ -301,9 +318,12 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Kind:            "command",
 		Summary:         "Show authenticated user profile",
 		AuthMode:        string(rpcAuthUser),
+		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetUserProfile,
 		Output:          schemaOutput{JSON: true, Human: true},
-		Inputs:          cloneInputs(commonCommandInputs),
+		Inputs: appendInputs(
+			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
+		),
 	},
 	"version": {
 		ID:       "version",

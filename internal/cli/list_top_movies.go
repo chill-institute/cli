@@ -9,10 +9,17 @@ import (
 )
 
 func newListTopMoviesCommand(app *appContext) *cobra.Command {
-	return &cobra.Command{
+	var fields string
+
+	command := &cobra.Command{
 		Use:   "list-top-movies",
 		Short: "List top movies for your profile",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			selection, err := parseFieldSelection(fields)
+			if err != nil {
+				return err
+			}
+
 			cfg, err := app.loadConfig()
 			if err != nil {
 				return err
@@ -33,7 +40,10 @@ func newListTopMoviesCommand(app *appContext) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("list top movies: %w", err)
 			}
-			return app.writeResponseBody(response.Body)
+			return app.writeSelectedResponseBody(response.Body, selection)
 		},
 	}
+
+	command.Flags().StringVar(&fields, "fields", "", "comma-separated field paths to include in the output")
+	return command
 }
