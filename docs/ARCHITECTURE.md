@@ -61,6 +61,7 @@ The config store owns:
 - auth token
 
 The store normalizes defaults and writes atomically through a temp-file replace flow.
+It also keeps the config directory private (`0700`) and the config file private (`0600`).
 
 ## Request Flow
 
