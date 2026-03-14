@@ -1,22 +1,18 @@
-# `chill-institute/cli`
+# chill-institute/cli
 
-![Go](https://img.shields.io/badge/Go-1.25-black?logo=go)
-![CLI](https://img.shields.io/badge/interface-CLI-black)
-![Cobra](https://img.shields.io/badge/framework-Cobra-black)
+![chill.institute cli](https://binge.institute/banner.png)
 
-`chilly` is the Go CLI for `chill.institute`.
+Command line client for [chill.institute](https://chill.institute), your favorite [put.io](https://put.io) extension since 2018.
 
-Start here:
+## Contributing
 
-```bash
-go build ./cmd/chilly
-mise install
-mise run verify
-```
+Please read the [contributing guide](./CONTRIBUTING.md).
 
-Key docs:
+## Docs
 
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
 - [docs/USAGE.md](./docs/USAGE.md)
 
-The CLI is command-oriented and supports `--output json` for automation or `--output pretty` for humans.
+## License
+
+MIT. See [LICENSE](./LICENSE).
