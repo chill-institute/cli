@@ -123,7 +123,7 @@ In `--output json` mode:
 
 ## Docs
 
-- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+- [Architecture](./docs/ARCHITECTURE.md)
 
 ## Contributing
 
