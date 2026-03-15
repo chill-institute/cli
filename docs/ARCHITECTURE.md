@@ -127,6 +127,9 @@ The current milestone does not fetch schema dynamically from the API. Discovery 
 
 - `cmd/chilly`: process entrypoint
 - `internal/cli`: Cobra adapter layer and command orchestration
+  - command files are named after the surface they expose, such as `auth.go`, `search.go`, and `user.go`
+  - shared support files are named by role, such as `output_pretty.go`, `output_fields.go`, `schema_registry.go`, and `rpc_procedures.go`
+  - the package stays flat on purpose so the command surface is easy to scan without introducing shallow helper subpackages
 - `internal/config`: local config persistence and normalization
 - `internal/rpc`: low-level API transport
 - `internal/buildinfo`: version metadata injected at build time

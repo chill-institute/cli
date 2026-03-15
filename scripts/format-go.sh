@@ -10,7 +10,7 @@ while IFS= read -r file; do
   if [[ -n "$file" ]]; then
     go_files+=("$file")
   fi
-done < <(git ls-files '*.go')
+done < <(rg --files -g '*.go')
 
 if [[ "${#go_files[@]}" -eq 0 ]]; then
   exit 0
