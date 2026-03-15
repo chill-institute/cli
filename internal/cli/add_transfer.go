@@ -16,6 +16,10 @@ func newAddTransferCommand(app *appContext) *cobra.Command {
 	command := &cobra.Command{
 		Use:   "add-transfer",
 		Short: "Add transfer to put.io",
+		Example: strings.TrimSpace(`
+chilly add-transfer --url "magnet:?xt=urn:btih:..."
+chilly add-transfer --url "magnet:?xt=urn:btih:..." --dry-run --output json
+`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			trimmedURL := strings.TrimSpace(transferURL)
 			if trimmedURL == "" {
