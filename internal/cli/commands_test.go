@@ -810,6 +810,160 @@ func TestUserIndexersPrettyOutputShowsReadableSummary(t *testing.T) {
 	}
 }
 
+func TestUserDownloadFolderPrettyOutputShowsReadableSummary(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/v4/chill.v4.UserService/GetDownloadFolder" {
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+		_, _ = writer.Write([]byte(`{"folder":{"id":"42","name":"chill.institute","fileType":"FOLDER","isShared":false}}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newUserCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputPretty},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"download-folder"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	rendered := stdout.String()
+	for _, expected := range []string{"Download Folder", "Name: chill.institute", "ID: 42"} {
+		if !strings.Contains(rendered, expected) {
+			t.Fatalf("pretty output missing %q in %q", expected, rendered)
+		}
+	}
+}
+
+func TestUserDownloadFolderSetDryRunReturnsPatchPreview(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newUserCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"download-folder", "set", "42", "--dry-run"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("output json decode error: %v", err)
+	}
+	request, ok := output["request"].(map[string]any)
+	if !ok {
+		t.Fatalf("request = %#v", output["request"])
+	}
+	patch, ok := request["patch"].(map[string]any)
+	if !ok {
+		t.Fatalf("patch = %#v", request["patch"])
+	}
+	if patch["field"] != "downloadFolderId" || patch["value"] != "42" {
+		t.Fatalf("patch = %#v", patch)
+	}
+}
+
+func TestUserFolderGetPrettyOutputShowsReadableSummary(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/v4/chill.v4.UserService/GetFolder" {
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		if payload["id"] != float64(42) {
+			t.Fatalf("id = %v, want %d", payload["id"], 42)
+		}
+		_, _ = writer.Write([]byte(`{"parent":{"id":"42","name":"Movies","fileType":"FOLDER"},"files":[{"id":"1","name":"Dune","fileType":"VIDEO"},{"id":"2","name":"Arrival","fileType":"VIDEO"}]}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newUserCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputPretty},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"folder", "get", "42"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	rendered := stdout.String()
+	for _, expected := range []string{"Folder", "Name: Movies", "Children: 2", "1. Dune [VIDEO]", "2. Arrival [VIDEO]"} {
+		if !strings.Contains(rendered, expected) {
+			t.Fatalf("pretty output missing %q in %q", expected, rendered)
+		}
+	}
+}
+
+func TestUserDownloadFolderClearDryRunReturnsPatchPreview(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newUserCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"download-folder", "clear", "--dry-run"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("output json decode error: %v", err)
+	}
+	request, ok := output["request"].(map[string]any)
+	if !ok {
+		t.Fatalf("request = %#v", output["request"])
+	}
+	patch, ok := request["patch"].(map[string]any)
+	if !ok {
+		t.Fatalf("patch = %#v", request["patch"])
+	}
+	if patch["field"] != "downloadFolderId" {
+		t.Fatalf("patch = %#v", patch)
+	}
+	if value, ok := patch["value"]; !ok || value != nil {
+		t.Fatalf("patch.value = %#v, want nil", patch["value"])
+	}
+}
+
 func TestUserSettingsSetPatchMergesWithCurrentSettings(t *testing.T) {
 	t.Parallel()
 

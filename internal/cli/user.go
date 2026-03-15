@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/chill-institute/cli/internal/rpc"
@@ -83,6 +84,8 @@ func newUserCommand(app *appContext) *cobra.Command {
 
 	command.AddCommand(newUserSettingsCommand(app))
 	command.AddCommand(newUserTransferCommand(app))
+	command.AddCommand(newUserDownloadFolderCommand(app))
+	command.AddCommand(newUserFolderCommand(app))
 
 	return command
 }
@@ -140,18 +143,7 @@ func newUserSettingsCommand(app *appContext) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if dryRun {
-				return app.writeDryRunPreview("user settings set", procedureUserSaveUserSettings, rpc.AuthUser, map[string]any{
-					"patch": patch,
-				})
-			}
-
-			currentSettings, err := loadCurrentUserSettings(app)
-			if err != nil {
-				return err
-			}
-			request := map[string]any{"settings": applyUserSettingsPatch(currentSettings, patch)}
-			return runUserRPC(app, procedureUserSaveUserSettings, request)
+			return runUserSettingsPatch(app, patch, dryRun)
 		},
 	}
 	setCommand.Flags().StringVar(&rawSettings, "json", "", "full settings object JSON")
@@ -191,6 +183,74 @@ func newUserTransferCommand(app *appContext) *cobra.Command {
 	return transferCommand
 }
 
+func newUserDownloadFolderCommand(app *appContext) *cobra.Command {
+	command := &cobra.Command{
+		Use:   "download-folder",
+		Short: "Show the current download folder",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runUserRPCWithRenderer(app, procedureUserGetDownloadFolder, map[string]any{}, nil, renderDownloadFolderPretty)
+		},
+	}
+
+	var dryRun bool
+	setCommand := &cobra.Command{
+		Use:   "set <id>",
+		Short: "Set the current download folder",
+		Args:  allowDescribeArgs(cobra.ExactArgs(1)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id, err := normalizeFolderID(args[0])
+			if err != nil {
+				return err
+			}
+			return runUserSettingsPatch(app, userSettingsPatch{
+				Field: "downloadFolderId",
+				Value: strconv.FormatInt(id, 10),
+			}, dryRun)
+		},
+	}
+	setCommand.Flags().BoolVar(&dryRun, "dry-run", false, "validate input and print the request or patch without executing it")
+	command.AddCommand(setCommand)
+
+	var clearDryRun bool
+	clearCommand := &cobra.Command{
+		Use:   "clear",
+		Short: "Clear the current download folder setting",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runUserSettingsPatch(app, userSettingsPatch{
+				Field: "downloadFolderId",
+				Value: nil,
+			}, clearDryRun)
+		},
+	}
+	clearCommand.Flags().BoolVar(&clearDryRun, "dry-run", false, "validate input and print the request or patch without executing it")
+	command.AddCommand(clearCommand)
+
+	return command
+}
+
+func newUserFolderCommand(app *appContext) *cobra.Command {
+	command := &cobra.Command{
+		Use:   "folder",
+		Short: "Folder operations",
+	}
+
+	getCommand := &cobra.Command{
+		Use:   "get <id>",
+		Short: "Get one folder and its children",
+		Args:  allowDescribeArgs(cobra.ExactArgs(1)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id, err := normalizeFolderID(args[0])
+			if err != nil {
+				return err
+			}
+			return runUserRPCWithRenderer(app, procedureUserGetFolder, map[string]any{"id": id}, nil, renderFolderPretty)
+		},
+	}
+
+	command.AddCommand(getCommand)
+	return command
+}
+
 func runUserRPC(app *appContext, procedure string, body any) error {
 	return runUserRPCWithRenderer(app, procedure, body, nil, nil)
 }
@@ -225,6 +285,37 @@ func loadCurrentUserSettings(app *appContext) (map[string]any, error) {
 		settings = map[string]any{}
 	}
 	return settings, nil
+}
+
+func runUserSettingsPatch(app *appContext, patch userSettingsPatch, dryRun bool) error {
+	if dryRun {
+		return app.writeDryRunPreview("user settings set", procedureUserSaveUserSettings, rpc.AuthUser, map[string]any{
+			"patch": patch,
+		})
+	}
+
+	currentSettings, err := loadCurrentUserSettings(app)
+	if err != nil {
+		return err
+	}
+	request := map[string]any{"settings": applyUserSettingsPatch(currentSettings, patch)}
+	return runUserRPC(app, procedureUserSaveUserSettings, request)
+}
+
+func normalizeFolderID(raw string) (int64, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return 0, usageError("missing_folder_id", "folder id is required")
+	}
+
+	value, err := strconv.ParseInt(trimmed, 10, 64)
+	if err != nil {
+		return 0, usageError("invalid_folder_id", "folder id must be an integer")
+	}
+	if value < 0 {
+		return 0, usageError("invalid_folder_id", "folder id must be zero or positive")
+	}
+	return value, nil
 }
 
 func runUserRPCWithFields(app *appContext, procedure string, body any, selection *fieldSelection) error {

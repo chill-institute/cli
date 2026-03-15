@@ -117,6 +117,10 @@ chilly list-top-movies --output json
 chilly user settings get --output json
 chilly user settings set show-top-movies true --output json
 chilly user settings set sort-by title --dry-run --output json
+chilly user download-folder --output json
+chilly user download-folder set 42 --dry-run --output json
+chilly user download-folder clear --dry-run --output json
+chilly user folder get 0 --output json
 chilly add-transfer --url "magnet:?xt=..." --dry-run --output json
 chilly settings set api-base-url https://api.chill.institute --dry-run --output json
 chilly user settings set --json '{"showTopMovies":true}' --output json

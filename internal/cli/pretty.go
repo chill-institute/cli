@@ -196,6 +196,66 @@ func renderUserSettingsPretty(value any) (string, bool, error) {
 	return strings.Join(lines, "\n"), true, nil
 }
 
+func renderDownloadFolderPretty(value any) (string, bool, error) {
+	payload, ok := value.(map[string]any)
+	if !ok {
+		return "", false, nil
+	}
+	folder, ok := payload["folder"].(map[string]any)
+	if !ok {
+		return "", false, nil
+	}
+
+	lines := []string{"Download Folder"}
+	lines = append(lines, prettyUserFileLines(folder)...)
+	return strings.Join(lines, "\n"), true, nil
+}
+
+func renderFolderPretty(value any) (string, bool, error) {
+	payload, ok := value.(map[string]any)
+	if !ok {
+		return "", false, nil
+	}
+
+	parent, ok := payload["parent"].(map[string]any)
+	if !ok {
+		return "", false, nil
+	}
+	files, ok := payload["files"].([]any)
+	if !ok {
+		return "", false, nil
+	}
+
+	lines := []string{"Folder"}
+	lines = append(lines, prettyUserFileLines(parent)...)
+	lines = append(lines, "")
+	lines = append(lines, fmt.Sprintf("Children: %d", len(files)))
+
+	for index, item := range files[:min(len(files), maxPrettyListItems)] {
+		file, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		name := firstString(file, "name")
+		if name == "" {
+			name = fmt.Sprintf("Item %d", index+1)
+		}
+		fileType := firstString(file, "fileType", "file_type")
+		if fileType == "" {
+			fileType = "unknown"
+		}
+		lines = append(lines, fmt.Sprintf("%d. %s [%s]", index+1, name, fileType))
+		if id := firstString(file, "id"); id != "" {
+			lines = append(lines, fmt.Sprintf("   ID: %s", id))
+		}
+	}
+	if len(files) > maxPrettyListItems {
+		lines = append(lines, fmt.Sprintf("... %d more items omitted. Use --output json for the full payload.", len(files)-maxPrettyListItems))
+	}
+
+	return strings.Join(lines, "\n"), true, nil
+}
+
 func appendIfString(lines []string, label string, payload map[string]any, keys ...string) []string {
 	if value := firstString(payload, keys...); value != "" {
 		return append(lines, fmt.Sprintf("%s: %s", label, value))
@@ -273,6 +333,28 @@ func prettyValue(value any) string {
 	default:
 		return fmt.Sprintf("%v", value)
 	}
+}
+
+func prettyUserFileLines(file map[string]any) []string {
+	lines := make([]string, 0, 5)
+	if name := firstString(file, "name"); name != "" {
+		lines = append(lines, fmt.Sprintf("Name: %s", name))
+	}
+	if id := firstString(file, "id"); id != "" {
+		lines = append(lines, fmt.Sprintf("ID: %s", id))
+	}
+	if fileType := firstString(file, "fileType", "file_type"); fileType != "" {
+		lines = append(lines, fmt.Sprintf("Type: %s", fileType))
+	}
+	if createdAt := firstString(file, "createdAt", "created_at"); createdAt != "" {
+		lines = append(lines, fmt.Sprintf("Created: %s", createdAt))
+	}
+	if shared, ok := file["isShared"].(bool); ok {
+		lines = append(lines, fmt.Sprintf("Shared: %t", shared))
+	} else if shared, ok := file["is_shared"].(bool); ok {
+		lines = append(lines, fmt.Sprintf("Shared: %t", shared))
+	}
+	return lines
 }
 
 func min(left int, right int) int {

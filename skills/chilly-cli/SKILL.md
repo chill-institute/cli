@@ -83,6 +83,14 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly user settings set show-top-movies true --output json`
 - Preview one patched setting:
   `chilly user settings set sort-by title --dry-run --output json`
+- Show the active download folder:
+  `chilly user download-folder --output json`
+- Preview a download folder change:
+  `chilly user download-folder set 42 --dry-run --output json`
+- Preview clearing the download folder:
+  `chilly user download-folder clear --dry-run --output json`
+- Inspect one folder by id:
+  `chilly user folder get 0 --output json`
 - Preview full user settings update:
   `chilly user settings set --json '{"showTopMovies":true}' --dry-run --output json`
 - Show build metadata:

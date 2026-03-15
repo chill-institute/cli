@@ -53,7 +53,7 @@ Current command groups:
 | `search` | run search against the hosted API |
 | `list-top-movies` | fetch top-movies data |
 | `add-transfer` | send transfer requests |
-| `user` | user-scoped API operations such as settings reads and writes |
+| `user` | user-scoped API operations such as settings, folders, and transfer reads/writes |
 | `version` | expose build metadata and release provenance |
 | `self-update` | install a released binary over the current executable |
 

@@ -9,4 +9,5 @@ const (
 	procedureUserAddTransfer       = "chill.v4.UserService/AddTransfer"
 	procedureUserGetIndexers       = "chill.v4.UserService/GetIndexers"
 	procedureUserGetDownloadFolder = "chill.v4.UserService/GetDownloadFolder"
+	procedureUserGetFolder         = "chill.v4.UserService/GetFolder"
 )

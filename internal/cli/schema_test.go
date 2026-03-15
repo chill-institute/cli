@@ -63,6 +63,81 @@ func TestCompletionCommandReturnsMetadata(t *testing.T) {
 	}
 }
 
+func TestSchemaCommandUserDownloadFolderReturnsMetadata(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newRootCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"schema", "command", "user download-folder", "--output", "json"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output schemaEntry
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if output.LinkedProcedure != procedureUserGetDownloadFolder {
+		t.Fatalf("LinkedProcedure = %q, want %q", output.LinkedProcedure, procedureUserGetDownloadFolder)
+	}
+}
+
+func TestSchemaCommandUserDownloadFolderSetReturnsMetadata(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newRootCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"schema", "command", "user download-folder set", "--output", "json"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output schemaEntry
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if !output.Mutates || !output.SupportsDryRun {
+		t.Fatalf("metadata = %#v, want mutating dry-run command", output)
+	}
+}
+
+func TestSchemaProcedureGetFolderReturnsMetadata(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newRootCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"schema", "procedure", procedureUserGetFolder, "--output", "json"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output schemaEntry
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if output.Kind != "procedure" {
+		t.Fatalf("Kind = %q, want %q", output.Kind, "procedure")
+	}
+	if len(output.Inputs) == 0 || output.Inputs[0].Name != "id" {
+		t.Fatalf("Inputs = %#v, want folder id input", output.Inputs)
+	}
+}
+
 func TestSchemaListsCommandsAndProceduresInJSON(t *testing.T) {
 	t.Parallel()
 

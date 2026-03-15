@@ -89,6 +89,14 @@ Fresh configs default to `https://api.binge.institute`. Saved local config can o
   `chilly user settings get --output json`
 - User settings with selected fields:
   `chilly user settings get --fields showTopMovies,sortBy --output json`
+- Current download folder:
+  `chilly user download-folder --output json`
+- Preview setting the download folder:
+  `chilly user download-folder set 42 --dry-run --output json`
+- Preview clearing the download folder:
+  `chilly user download-folder clear --dry-run --output json`
+- Inspect one folder:
+  `chilly user folder get 0 --output json`
 
 ## Mutating Commands
 
