@@ -21,3 +21,9 @@
 - `go test ./...`
 - `mise run verify`
 - For command surface changes, also run `go run ./cmd/chilly <command> --help`.
+
+## Release Flow
+
+- Releases are cut from `main`, not by manually pushing tags.
+- Keep release behavior aligned with [`.github/workflows/tag-release.yml`](./.github/workflows/tag-release.yml) and GoReleaser.
+- If install docs or release assumptions change, update [README.md](./README.md) and [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) in the same pass.

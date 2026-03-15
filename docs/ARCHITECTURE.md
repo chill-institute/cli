@@ -176,7 +176,9 @@ In default pretty mode, the core read commands render small human-oriented summa
 - Local hooks live in `.githooks/`
 - Shared quality tasks live in `mise.toml`
 - CI runs `mise run verify`
-- Tagged releases are wired through GoReleaser to publish GitHub release artifacts and update the Homebrew tap
+- Pushes to `main` run the release workflow
+- semantic-release decides the next version and tag
+- the same workflow runs GoReleaser to publish GitHub release artifacts and update the Homebrew tap
 
 ## Browser Auth Flow
 
