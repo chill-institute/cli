@@ -36,12 +36,17 @@ jobs:
       - name: Verify
         run: mise run verify
 
+      - name: Inspect workspace
+        working-directory: ${{ github.workspace }}
+        run: |
+          pwd
+          ls -la
+          ls -la cmd
+          ls -la cmd/chilly
+
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: "~> v2"
-          args: release --clean
+        working-directory: ${{ github.workspace }}
+        run: go run github.com/goreleaser/goreleaser/v2@v2.14.3 release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}

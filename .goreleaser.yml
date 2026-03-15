@@ -44,10 +44,11 @@ brews:
   - name: chilly
     ids:
       - chilly
+    skip_upload: "{{ if eq (index .Env \"TAP_GITHUB_TOKEN\") \"\" }}true{{ else }}false{{ end }}"
     repository:
       owner: chill-institute
       name: homebrew-tap
-      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+      token: "{{ index .Env \"TAP_GITHUB_TOKEN\" }}"
     directory: Formula
     homepage: https://chill.institute
     description: Agent-first command line client for chill.institute
