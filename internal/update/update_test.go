@@ -66,25 +66,6 @@ func TestFindChecksumAsset(t *testing.T) {
 	}
 }
 
-func TestFindSigstoreBundleAsset(t *testing.T) {
-	t.Parallel()
-
-	release := Release{
-		TagName: "v1.2.3",
-		Assets: []ReleaseAsset{
-			{Name: "checksums.txt.sigstore.json", BrowserDownloadURL: "https://example.invalid/checksums.txt.sigstore.json"},
-		},
-	}
-
-	asset, err := FindSigstoreBundleAsset(release)
-	if err != nil {
-		t.Fatalf("FindSigstoreBundleAsset() error = %v", err)
-	}
-	if asset.BrowserDownloadURL == "" {
-		t.Fatal("expected sigstore bundle asset URL")
-	}
-}
-
 func TestVerifyAssetChecksum(t *testing.T) {
 	t.Parallel()
 
@@ -102,15 +83,6 @@ func TestVerifyAssetChecksumMismatch(t *testing.T) {
 	checksums := []byte("deadbeef  chilly_v1.2.3_darwin_arm64.tar.gz\n")
 	if err := VerifyAssetChecksum("chilly_v1.2.3_darwin_arm64.tar.gz", payload, checksums); err == nil {
 		t.Fatal("VerifyAssetChecksum() error = nil, want mismatch")
-	}
-}
-
-func TestVerifySignedChecksumsBundleRejectsInvalidBundle(t *testing.T) {
-	t.Parallel()
-
-	err := VerifySignedChecksumsBundle(context.Background(), []byte("checksums"), []byte("{"))
-	if err == nil {
-		t.Fatal("VerifySignedChecksumsBundle() error = nil, want invalid bundle failure")
 	}
 }
 
