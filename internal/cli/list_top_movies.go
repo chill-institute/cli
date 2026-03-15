@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/chill-institute/cli/internal/rpc"
 	"github.com/spf13/cobra"
@@ -14,6 +15,10 @@ func newListTopMoviesCommand(app *appContext) *cobra.Command {
 	command := &cobra.Command{
 		Use:   "list-top-movies",
 		Short: "List top movies for your profile",
+		Example: strings.TrimSpace(`
+chilly list-top-movies
+chilly list-top-movies --fields movies.title --output json
+`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			selection, err := parseFieldSelection(fields)
 			if err != nil {

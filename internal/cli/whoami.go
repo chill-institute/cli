@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/chill-institute/cli/internal/rpc"
 	"github.com/spf13/cobra"
@@ -14,6 +15,10 @@ func newWhoamiCommand(app *appContext) *cobra.Command {
 	command := &cobra.Command{
 		Use:   "whoami",
 		Short: "Show authenticated user profile",
+		Example: strings.TrimSpace(`
+chilly whoami
+chilly whoami --fields username,email --output json
+`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			selection, err := parseFieldSelection(fields)
 			if err != nil {

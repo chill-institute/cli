@@ -869,6 +869,9 @@ func TestUserDownloadFolderSetDryRunReturnsPatchPreview(t *testing.T) {
 	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
 		t.Fatalf("output json decode error: %v", err)
 	}
+	if output["command"] != "user download-folder set" {
+		t.Fatalf("command = %v, want %q", output["command"], "user download-folder set")
+	}
 	request, ok := output["request"].(map[string]any)
 	if !ok {
 		t.Fatalf("request = %#v", output["request"])
@@ -947,6 +950,9 @@ func TestUserDownloadFolderClearDryRunReturnsPatchPreview(t *testing.T) {
 	var output map[string]any
 	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
 		t.Fatalf("output json decode error: %v", err)
+	}
+	if output["command"] != "user download-folder clear" {
+		t.Fatalf("command = %v, want %q", output["command"], "user download-folder clear")
 	}
 	request, ok := output["request"].(map[string]any)
 	if !ok {

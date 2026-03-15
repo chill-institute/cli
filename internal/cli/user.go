@@ -155,7 +155,7 @@ chilly user settings set --json '{"showTopMovies":true}'
 			if err != nil {
 				return err
 			}
-			return runUserSettingsPatch(app, patch, dryRun)
+			return runUserSettingsPatch(app, "user settings set", patch, dryRun)
 		},
 	}
 	setCommand.Flags().StringVar(&rawSettings, "json", "", "full settings object JSON")
@@ -218,7 +218,7 @@ chilly user download-folder set 42 --dry-run --output json
 			if err != nil {
 				return err
 			}
-			return runUserSettingsPatch(app, userSettingsPatch{
+			return runUserSettingsPatch(app, "user download-folder set", userSettingsPatch{
 				Field: "downloadFolderId",
 				Value: strconv.FormatInt(id, 10),
 			}, dryRun)
@@ -236,7 +236,7 @@ chilly user download-folder clear
 chilly user download-folder clear --dry-run --output json
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runUserSettingsPatch(app, userSettingsPatch{
+			return runUserSettingsPatch(app, "user download-folder clear", userSettingsPatch{
 				Field: "downloadFolderId",
 				Value: nil,
 			}, clearDryRun)
@@ -311,9 +311,9 @@ func loadCurrentUserSettings(app *appContext) (map[string]any, error) {
 	return settings, nil
 }
 
-func runUserSettingsPatch(app *appContext, patch userSettingsPatch, dryRun bool) error {
+func runUserSettingsPatch(app *appContext, commandID string, patch userSettingsPatch, dryRun bool) error {
 	if dryRun {
-		return app.writeDryRunPreview("user settings set", procedureUserSaveUserSettings, rpc.AuthUser, map[string]any{
+		return app.writeDryRunPreview(commandID, procedureUserSaveUserSettings, rpc.AuthUser, map[string]any{
 			"patch": patch,
 		})
 	}
