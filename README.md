@@ -50,6 +50,20 @@ chilly add-transfer --url "magnet:?xt=urn:btih:..." --dry-run --output json
 
 Released binaries use the `default` profile; dev builds default to `dev` so source runs do not reuse production config by accident.
 
+## Verify Release
+
+```bash
+curl -fsSLO https://github.com/chill-institute/cli/releases/download/v0.1.2/checksums.txt
+curl -fsSLO https://github.com/chill-institute/cli/releases/download/v0.1.2/checksums.txt.sigstore.json
+cosign verify-blob \
+  --bundle checksums.txt.sigstore.json \
+  --certificate-identity-regexp 'https://github.com/chill-institute/cli/.github/workflows/release.yml@refs/tags/.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  checksums.txt
+```
+
+After that, verify the archive you downloaded matches `checksums.txt`.
+
 ## Docs
 
 - [Architecture](./docs/ARCHITECTURE.md)
