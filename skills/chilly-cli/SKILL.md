@@ -48,7 +48,7 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly search --describe --output json`
 - Show installed build metadata:
   `chilly version --output json`
-- Check whether a newer release exists:
+- Check whether a newer published release exists:
   `chilly self-update --check --output json`
 - Generate zsh completions:
   `chilly completion zsh`
