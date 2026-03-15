@@ -89,7 +89,9 @@ func newSettingsGetCommand(app *appContext) *cobra.Command {
 }
 
 func newSettingsSetCommand(app *appContext) *cobra.Command {
-	return &cobra.Command{
+	var dryRun bool
+
+	command := &cobra.Command{
 		Use:   "set <key> <value>",
 		Short: "Set a local CLI setting value",
 		Args:  allowDescribeArgs(cobra.ExactArgs(2)),
@@ -104,11 +106,20 @@ func newSettingsSetCommand(app *appContext) *cobra.Command {
 				return err
 			}
 
+			request := map[string]any{
+				"key": args[0],
+			}
+
 			switch key {
 			case "api-base-url":
 				nextValue, err := normalizeAPIBaseURL(args[1])
 				if err != nil {
 					return err
+				}
+				request["key"] = key
+				request["value"] = nextValue
+				if dryRun {
+					return app.writeLocalDryRunPreview("settings set", request)
 				}
 				cfg.APIBaseURL = nextValue
 			default:
@@ -126,6 +137,9 @@ func newSettingsSetCommand(app *appContext) *cobra.Command {
 			})
 		},
 	}
+
+	command.Flags().BoolVar(&dryRun, "dry-run", false, "validate input and print the local config change without saving it")
+	return command
 }
 
 func loadStoredCLISettings(app *appContext) (config.Config, error) {

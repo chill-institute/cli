@@ -42,10 +42,12 @@ type dryRunPreview struct {
 	Status    string       `json:"status"`
 	DryRun    bool         `json:"dry_run"`
 	Command   string       `json:"command"`
-	Procedure string       `json:"procedure"`
+	Procedure string       `json:"procedure,omitempty"`
 	AuthMode  rpc.AuthMode `json:"auth_mode"`
 	Request   any          `json:"request"`
 }
+
+type prettyRenderer func(any) (string, bool, error)
 
 func newAppContext(opts *appOptions) *appContext {
 	return &appContext{
@@ -139,6 +141,28 @@ func (app *appContext) writeSelectedResponseBody(body []byte, selection *fieldSe
 	return wrapInternalError("stdout_write_failed", "write response output", err)
 }
 
+func (app *appContext) writeSelectedResponseBodyWithRenderer(body []byte, selection *fieldSelection, renderer prettyRenderer) error {
+	if app.opts.output == outputJSON || selection != nil || renderer == nil {
+		return app.writeSelectedResponseBody(body, selection)
+	}
+
+	var value any
+	if err := json.Unmarshal(bytes.TrimSpace(body), &value); err != nil {
+		return wrapInternalError("response_decode_failed", "decode response output", err)
+	}
+
+	rendered, ok, err := renderer(value)
+	if err != nil {
+		return wrapInternalError("response_render_failed", "render response output", err)
+	}
+	if !ok {
+		return app.writeSelectedResponseBody(body, selection)
+	}
+
+	_, err = fmt.Fprintln(app.stdout, rendered)
+	return wrapInternalError("stdout_write_failed", "write response output", err)
+}
+
 func (app *appContext) writeJSONPayload(payload any) error {
 	encoded, err := json.Marshal(payload)
 	if err != nil {
@@ -161,6 +185,10 @@ func (app *appContext) writeDryRunPreview(commandID string, procedure string, au
 		AuthMode:  authMode,
 		Request:   request,
 	})
+}
+
+func (app *appContext) writeLocalDryRunPreview(commandID string, request any) error {
+	return app.writeDryRunPreview(commandID, "", rpc.AuthNone, request)
 }
 
 func (app *appContext) readLine(prompt string) (string, error) {

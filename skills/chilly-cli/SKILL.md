@@ -13,11 +13,12 @@ Use `chilly` as the local command-line entrypoint for chill.institute. Prefer `-
 2. Use direct binary commands such as `chilly whoami --output json`.
 3. Fall back to `go run ./cmd/chilly ...` only when working from source in a maintainer checkout.
 4. Add `--output json` whenever the result will feed another tool or decision.
-5. Use `settings get api-base-url` before assuming which hosted environment is active.
-6. Use `schema` or `--describe` when you need to inspect the local CLI contract before running a command.
-7. Use `version` and `self-update --check` when you need release provenance before proposing an upgrade.
-8. Use `--dry-run` on supported mutating commands when you need to preview a request safely.
-9. Use `--fields` on supported read commands when you only need a stable subset of the JSON response.
+5. Omit `--output json` when a human wants the built-in terminal summary from `whoami`, `search`, or `list-top-movies`.
+6. Use `settings get api-base-url` before assuming which hosted environment is active.
+7. Use `schema` or `--describe` when you need to inspect the local CLI contract before running a command.
+8. Use `version` and `self-update --check` when you need release provenance before proposing an upgrade.
+9. Use `--dry-run` on supported mutating commands when you need to preview a request safely.
+10. Use `--fields` on supported read commands when you only need a stable subset of the JSON response.
 
 ## Auth
 
@@ -55,6 +56,8 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly settings set api-base-url https://api.binge.institute`
 - Point to production:
   `chilly settings set api-base-url https://api.chill.institute`
+- Preview an API host change without saving it:
+  `chilly settings set api-base-url https://api.chill.institute --dry-run --output json`
 - Search:
   `chilly search --query "dune" --output json`
 - Search with a smaller response:
@@ -67,6 +70,8 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly add-transfer --url "magnet:?xt=..." --output json`
 - Preview transfer request without executing it:
   `chilly add-transfer --url "magnet:?xt=..." --dry-run --output json`
+- Preview logout without clearing the saved token:
+  `chilly auth logout --dry-run --output json`
 - Read user settings:
   `chilly user settings get --output json`
 - Read only selected settings:

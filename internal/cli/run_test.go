@@ -103,6 +103,98 @@ func TestRunUserSettingsSetDryRunSkipsAuthAndReturnsPreview(t *testing.T) {
 	}
 }
 
+func TestRunSettingsSetDryRunReturnsLocalPreview(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	exitCode := Run([]string{
+		"--config", configPath,
+		"settings", "set",
+		"api-base-url", "https://api.chill.test",
+		"--dry-run",
+		"--output", "json",
+	}, strings.NewReader(""), stdout, stderr)
+	if exitCode != int(exitCodeSuccess) {
+		t.Fatalf("exitCode = %d, want %d", exitCode, exitCodeSuccess)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal(stdout) error = %v", err)
+	}
+	if output["dry_run"] != true {
+		t.Fatalf("dry_run = %v, want true", output["dry_run"])
+	}
+	if output["command"] != "settings set" {
+		t.Fatalf("command = %v, want %q", output["command"], "settings set")
+	}
+	if _, ok := output["procedure"]; ok {
+		t.Fatalf("procedure = %#v, want omitted for local preview", output["procedure"])
+	}
+
+	request, ok := output["request"].(map[string]any)
+	if !ok {
+		t.Fatalf("request = %#v, want object", output["request"])
+	}
+	if request["key"] != "api-base-url" {
+		t.Fatalf("request.key = %v, want %q", request["key"], "api-base-url")
+	}
+	if request["value"] != "https://api.chill.test" {
+		t.Fatalf("request.value = %v, want %q", request["value"], "https://api.chill.test")
+	}
+}
+
+func TestRunAuthLogoutDryRunReturnsLocalPreview(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: "https://api.binge.institute", AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	exitCode := Run([]string{
+		"--config", configPath,
+		"auth", "logout",
+		"--dry-run",
+		"--output", "json",
+	}, strings.NewReader(""), stdout, stderr)
+	if exitCode != int(exitCodeSuccess) {
+		t.Fatalf("exitCode = %d, want %d", exitCode, exitCodeSuccess)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal(stdout) error = %v", err)
+	}
+	if output["command"] != "auth logout" {
+		t.Fatalf("command = %v, want %q", output["command"], "auth logout")
+	}
+	request, ok := output["request"].(map[string]any)
+	if !ok {
+		t.Fatalf("request = %#v, want object", output["request"])
+	}
+	if request["clear_auth_token"] != true {
+		t.Fatalf("request.clear_auth_token = %v, want true", request["clear_auth_token"])
+	}
+	if request["had_auth_token"] != true {
+		t.Fatalf("request.had_auth_token = %v, want true", request["had_auth_token"])
+	}
+}
+
 func TestRunReturnsUsageExitCodeAndJSONErrorEnvelope(t *testing.T) {
 	t.Parallel()
 

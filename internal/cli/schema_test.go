@@ -221,6 +221,68 @@ func TestSchemaCommandAddTransferReturnsDryRunMetadata(t *testing.T) {
 	}
 }
 
+func TestSchemaCommandSettingsSetReturnsDryRunMetadata(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newRootCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"schema", "command", "settings set", "--output", "json"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output schemaEntry
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if !output.Mutates {
+		t.Fatal("settings set metadata should be mutating")
+	}
+	if !output.SupportsDryRun {
+		t.Fatal("settings set metadata should support dry run")
+	}
+
+	foundDryRun := false
+	for _, input := range output.Inputs {
+		if input.Name == "dry-run" {
+			foundDryRun = true
+			break
+		}
+	}
+	if !foundDryRun {
+		t.Fatal("settings set metadata missing dry-run input")
+	}
+}
+
+func TestSchemaCommandAuthLogoutReturnsDryRunMetadata(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newRootCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"schema", "command", "auth logout", "--output", "json"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output schemaEntry
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if !output.SupportsDryRun {
+		t.Fatal("auth logout metadata should support dry run")
+	}
+}
+
 func TestSchemaCommandWhoamiReturnsFieldSelectionMetadata(t *testing.T) {
 	t.Parallel()
 

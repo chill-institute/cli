@@ -40,7 +40,7 @@ func newListTopMoviesCommand(app *appContext) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("list top movies: %w", err)
 			}
-			return app.writeSelectedResponseBody(response.Body, selection)
+			return app.writeSelectedResponseBodyWithRenderer(response.Body, selection, renderTopMoviesPretty)
 		},
 	}
 

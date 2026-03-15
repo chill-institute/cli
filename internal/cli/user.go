@@ -192,5 +192,18 @@ func runUserRPCWithFields(app *appContext, procedure string, body any, selection
 	if err != nil {
 		return fmt.Errorf("user rpc call: %w", err)
 	}
-	return app.writeSelectedResponseBody(response.Body, selection)
+	return app.writeSelectedResponseBodyWithRenderer(response.Body, selection, prettyRendererForProcedure(procedure))
+}
+
+func prettyRendererForProcedure(procedure string) prettyRenderer {
+	switch procedure {
+	case procedureUserGetUserProfile:
+		return renderWhoamiPretty
+	case procedureUserSearch:
+		return renderSearchPretty
+	case procedureUserGetTopMovies:
+		return renderTopMoviesPretty
+	default:
+		return nil
+	}
 }

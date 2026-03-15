@@ -106,6 +106,49 @@ func TestAuthLogoutClearsToken(t *testing.T) {
 	}
 }
 
+func TestAuthLogoutDryRunKeepsToken(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: "https://api.binge.institute", AuthToken: "token-1"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	app := &appContext{
+		opts:   &appOptions{configPath: configPath, output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	}
+
+	command := newAuthLogoutCommand(app)
+	command.SetArgs([]string{"--dry-run"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	cfg, err := store.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.AuthToken != "token-1" {
+		t.Fatalf("AuthToken = %q, want %q", cfg.AuthToken, "token-1")
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("output json decode error: %v", err)
+	}
+	if output["dry_run"] != true {
+		t.Fatalf("dry_run = %v, want true", output["dry_run"])
+	}
+}
+
 func TestSearchCommandUsesStoredToken(t *testing.T) {
 	t.Parallel()
 
@@ -210,6 +253,81 @@ func TestSearchCommandFieldsFiltersResponse(t *testing.T) {
 	}
 }
 
+func TestSearchCommandPrettyOutputShowsReadableSummary(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = writer.Write([]byte(`{"query":"dune","results":[{"title":"Dune","magnetLink":"magnet:?xt=urn:btih:dune","size":"1.4 GB","seeders":120}]}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newSearchCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputPretty},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"--query", "dune"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	rendered := stdout.String()
+	for _, expected := range []string{"Results: 1", "Query: dune", "1. Dune", "Size: 1.4 GB", "Magnet: magnet:?xt=urn:btih:dune"} {
+		if !strings.Contains(rendered, expected) {
+			t.Fatalf("pretty output missing %q in %q", expected, rendered)
+		}
+	}
+}
+
+func TestSearchCommandPrettyOutputTruncatesLongLists(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = writer.Write([]byte(`{"query":"dune","results":[{"title":"One"},{"title":"Two"},{"title":"Three"},{"title":"Four"},{"title":"Five"},{"title":"Six"},{"title":"Seven"},{"title":"Eight"},{"title":"Nine"},{"title":"Ten"},{"title":"Eleven"}]}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newSearchCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputPretty},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"--query", "dune"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	rendered := stdout.String()
+	if strings.Contains(rendered, "11. Eleven") {
+		t.Fatalf("pretty output should truncate long lists: %q", rendered)
+	}
+	if !strings.Contains(rendered, "... 1 more results omitted.") {
+		t.Fatalf("pretty output missing truncation notice: %q", rendered)
+	}
+}
+
 func TestSettingsSetAndGetAPIBaseURL(t *testing.T) {
 	t.Parallel()
 
@@ -250,6 +368,49 @@ func TestSettingsSetAndGetAPIBaseURL(t *testing.T) {
 	}
 	if output["value"] != "https://api.chill.test" {
 		t.Fatalf("value = %v, want %q", output["value"], "https://api.chill.test")
+	}
+}
+
+func TestSettingsSetDryRunDoesNotSaveAPIBaseURL(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Default()); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	app := &appContext{
+		opts:   &appOptions{configPath: configPath, output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	}
+
+	command := newSettingsCommand(app)
+	command.SetArgs([]string{"set", "api-base-url", "https://api.chill.test", "--dry-run"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	cfg, err := store.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.APIBaseURL != config.Default().APIBaseURL {
+		t.Fatalf("APIBaseURL = %q, want %q", cfg.APIBaseURL, config.Default().APIBaseURL)
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("output json decode error: %v", err)
+	}
+	if output["command"] != "settings set" {
+		t.Fatalf("command = %v, want %q", output["command"], "settings set")
 	}
 }
 
@@ -361,6 +522,43 @@ func TestListTopMoviesFieldsFiltersResponse(t *testing.T) {
 	}
 }
 
+func TestListTopMoviesPrettyOutputShowsReadableSummary(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = writer.Write([]byte(`{"movies":[{"title":"Dune","year":2021},{"title":"Arrival","year":2016}]}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newListTopMoviesCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputPretty},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs(nil)
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	rendered := stdout.String()
+	for _, expected := range []string{"Movies: 2", "1. Dune (2021)", "2. Arrival (2016)"} {
+		if !strings.Contains(rendered, expected) {
+			t.Fatalf("pretty output missing %q in %q", expected, rendered)
+		}
+	}
+}
+
 func TestSettingsPathOutputsResolvedStorePath(t *testing.T) {
 	t.Parallel()
 
@@ -427,6 +625,43 @@ func TestWhoamiFieldsFiltersResponse(t *testing.T) {
 	}
 }
 
+func TestWhoamiPrettyOutputShowsReadableSummary(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = writer.Write([]byte(`{"username":"dunefan","email":"dune@example.com","userId":"123"}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newWhoamiCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputPretty},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs(nil)
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	rendered := stdout.String()
+	for _, expected := range []string{"Username: dunefan", "Email: dune@example.com", "User ID: 123"} {
+		if !strings.Contains(rendered, expected) {
+			t.Fatalf("pretty output missing %q in %q", expected, rendered)
+		}
+	}
+}
+
 func TestUserSettingsGetFieldsFiltersResponse(t *testing.T) {
 	t.Parallel()
 
@@ -468,5 +703,42 @@ func TestUserSettingsGetFieldsFiltersResponse(t *testing.T) {
 	}
 	if _, ok := output["sortDirection"]; ok {
 		t.Fatalf("unexpected sortDirection in %#v", output)
+	}
+}
+
+func TestUserProfilePrettyOutputShowsReadableSummary(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/v4/chill.v4.UserService/GetUserProfile" {
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+		_, _ = writer.Write([]byte(`{"username":"dunefan","email":"dune@example.com","userId":"123"}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newUserCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputPretty},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"profile"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	if !strings.Contains(stdout.String(), "Username: dunefan") {
+		t.Fatalf("stdout = %q", stdout.String())
 	}
 }

@@ -47,11 +47,15 @@ Fresh configs default to `https://api.binge.institute`. Saved local config can o
   `chilly auth login --token <token>`
 - Logout:
   `chilly auth logout --output json`
+- Preview logout without clearing the saved token:
+  `chilly auth logout --dry-run --output json`
 - Verify current auth:
   `chilly whoami --output json`
 
 ## Read Commands
 
+- Search with the built-in terminal summary:
+  `chilly search --query "blade runner"`
 - Search:
   `chilly search --query "blade runner" --output json`
 - Search with field selection:
@@ -59,12 +63,16 @@ Fresh configs default to `https://api.binge.institute`. Saved local config can o
 - Search with a specific indexer:
   `chilly search --query "blade runner" --indexer-id <id> --output json`
 - User profile:
+  `chilly whoami`
+- User profile as JSON:
   `chilly whoami --output json`
 - User profile with selected fields:
   `chilly whoami --fields username,email --output json`
 - User indexers:
   `chilly user indexers --output json`
 - Top movies:
+  `chilly list-top-movies`
+- Top movies as JSON:
   `chilly list-top-movies --output json`
 - Top movies with selected fields:
   `chilly list-top-movies --fields movies.title --output json`
@@ -87,6 +95,8 @@ Fresh configs default to `https://api.binge.institute`. Saved local config can o
   `chilly user settings set --json '{"showTopMovies":true}' --output json`
 - Preview the full settings payload:
   `chilly user settings set --json '{"showTopMovies":true}' --dry-run --output json`
+- Preview a local CLI settings change:
+  `chilly settings set api-base-url https://api.chill.institute --dry-run --output json`
 
 `user settings set` currently expects a full JSON object, not a partial patch.
 
