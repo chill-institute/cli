@@ -2,7 +2,7 @@
 
 ![chill.institute cli](https://binge.institute/banner.png)
 
-Command line client for [chill.institute](https://chill.institute), your favorite [put.io](https://put.io) extension since 2018.
+CLI client for [chill.institute](https://chill.institute), your favorite [put.io](https://put.io) extension since 2018.
 
 ## Install
 
@@ -17,7 +17,7 @@ chilly version --output json
 ```
 
 > [!NOTE]
-> `chilly` is currently in beta and defaults fresh configs to the staging backend at `https://api.binge.institute` while we keep shaping the CLI surface.
+> `chilly` is currently in beta and uses the staging backend at `api.binge.institute`
 
 ## Agent-First Contract
 
