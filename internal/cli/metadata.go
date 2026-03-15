@@ -283,16 +283,18 @@ var commandSchemaRegistry = map[string]schemaEntry{
 	"user settings set": {
 		ID:              "user settings set",
 		Kind:            "command",
-		Summary:         "Save full user settings JSON payload",
+		Summary:         "Save full user settings JSON payload or patch one supported field",
 		AuthMode:        string(rpcAuthUser),
 		Mutates:         true,
 		SupportsDryRun:  true,
 		LinkedProcedure: procedureUserSaveUserSettings,
 		Output:          schemaOutput{JSON: true, Human: true},
-		Inputs: appendInputs(
-			schemaInput{Name: "json", Type: "string", Required: true, Description: "full settings object JSON"},
-			schemaInput{Name: "dry-run", Type: "boolean", Description: "validate input and print the request without executing it"},
-		),
+		Inputs: append(appendInputs(
+			schemaInput{Name: "json", Type: "string", Description: "full settings object JSON"},
+			schemaInput{Name: "field", Type: "string", Description: "supported settings field to patch"},
+			schemaInput{Name: "value", Type: "string", Description: "normalized patch value for the selected field"},
+			schemaInput{Name: "dry-run", Type: "boolean", Description: "validate input and print the request or patch without executing it"},
+		), supportedUserSettingsPatchInputs()...),
 	},
 	"user top-movies": {
 		ID:              "user top-movies",

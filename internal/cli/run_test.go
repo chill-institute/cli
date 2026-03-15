@@ -103,6 +103,42 @@ func TestRunUserSettingsSetDryRunSkipsAuthAndReturnsPreview(t *testing.T) {
 	}
 }
 
+func TestRunUserSettingsSetPatchDryRunSkipsAuthAndReturnsPreview(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	exitCode := Run([]string{
+		"--config", configPath,
+		"user", "settings", "set",
+		"show-top-movies", "true",
+		"--dry-run",
+		"--output", "json",
+	}, strings.NewReader(""), stdout, stderr)
+	if exitCode != int(exitCodeSuccess) {
+		t.Fatalf("exitCode = %d, want %d", exitCode, exitCodeSuccess)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("stderr = %q, want empty", stderr.String())
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal(stdout) error = %v", err)
+	}
+	patch, ok := output["request"].(map[string]any)["patch"].(map[string]any)
+	if !ok {
+		t.Fatalf("request.patch = %#v, want object", output["request"])
+	}
+	if patch["field"] != "showTopMovies" {
+		t.Fatalf("patch.field = %v, want %q", patch["field"], "showTopMovies")
+	}
+	if patch["value"] != true {
+		t.Fatalf("patch.value = %v, want true", patch["value"])
+	}
+}
+
 func TestRunSettingsSetDryRunReturnsLocalPreview(t *testing.T) {
 	t.Parallel()
 

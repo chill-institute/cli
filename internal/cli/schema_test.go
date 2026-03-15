@@ -311,6 +311,44 @@ func TestSchemaCommandAuthLogoutReturnsDryRunMetadata(t *testing.T) {
 	}
 }
 
+func TestSchemaCommandUserSettingsSetReturnsPatchMetadata(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newRootCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"schema", "command", "user settings set", "--output", "json"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output schemaEntry
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+
+	seenField := false
+	seenValue := false
+	seenPatchFieldSpec := false
+	for _, input := range output.Inputs {
+		switch input.Name {
+		case "field":
+			seenField = true
+		case "value":
+			seenValue = true
+		case "field:showTopMovies":
+			seenPatchFieldSpec = true
+		}
+	}
+	if !seenField || !seenValue || !seenPatchFieldSpec {
+		t.Fatalf("missing patch metadata in %#v", output.Inputs)
+	}
+}
+
 func TestSchemaCommandWhoamiReturnsFieldSelectionMetadata(t *testing.T) {
 	t.Parallel()
 

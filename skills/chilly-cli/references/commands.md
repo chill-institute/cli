@@ -102,12 +102,16 @@ Fresh configs default to `https://api.binge.institute`. Saved local config can o
   `chilly user transfer add --url "magnet:?xt=..." --dry-run --output json`
 - Replace user settings with a full JSON payload:
   `chilly user settings set --json '{"showTopMovies":true}' --output json`
+- Patch one setting:
+  `chilly user settings set show-top-movies true --output json`
+- Patch enum settings with friendly values:
+  `chilly user settings set sort-by title --output json`
+- Preview a one-field settings patch:
+  `chilly user settings set sort-by title --dry-run --output json`
 - Preview the full settings payload:
   `chilly user settings set --json '{"showTopMovies":true}' --dry-run --output json`
 - Preview a local CLI settings change:
   `chilly settings set api-base-url https://api.chill.institute --dry-run --output json`
-
-`user settings set` currently expects a full JSON object, not a partial patch.
 
 ## Output Discipline
 

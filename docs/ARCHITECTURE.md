@@ -112,6 +112,7 @@ The CLI keeps a local metadata registry for:
 - backend procedure schemas linked from those commands
 - dry-run eligibility for selected mutating surfaces
 - field-selection eligibility for selected read surfaces
+- supported single-field patch semantics for user settings
 
 That registry is the source of truth for:
 
@@ -148,6 +149,11 @@ This keeps CLI command glue separate from reusable transport and release modules
 - Exit codes are classified into usage (`2`), auth (`3`), API (`4`), and internal (`5`) failures.
 
 For supported mutating commands, `--dry-run` validates local input and writes a deterministic request or config-change preview to `stdout` without mutating local state, loading auth, or calling the API.
+
+`user settings set` supports two write paths:
+
+- full replacement with `--json`
+- one-field patch mode that fetches current settings, merges a validated patch, and saves the full object back through the existing RPC
 
 For supported read commands, `--fields` applies a client-side field mask to the JSON response before rendering it to `stdout`.
 

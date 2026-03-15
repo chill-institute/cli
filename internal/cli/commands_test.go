@@ -730,6 +730,213 @@ func TestUserSettingsGetFieldsFiltersResponse(t *testing.T) {
 	}
 }
 
+func TestUserSettingsGetPrettyOutputShowsReadableSummary(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/v4/chill.v4.UserService/GetUserSettings" {
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+		_, _ = writer.Write([]byte(`{"showTopMovies":true,"sortBy":"SORT_BY_SEEDERS","sortDirection":"SORT_DIRECTION_DESC","disabledIndexerIds":["animetosho"]}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newUserCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputPretty},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"settings", "get"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	rendered := stdout.String()
+	for _, expected := range []string{"User Settings", "showTopMovies: true", "sortBy: SORT_BY_SEEDERS", "disabledIndexerIds: animetosho"} {
+		if !strings.Contains(rendered, expected) {
+			t.Fatalf("pretty output missing %q in %q", expected, rendered)
+		}
+	}
+}
+
+func TestUserIndexersPrettyOutputShowsReadableSummary(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/v4/chill.v4.UserService/GetIndexers" {
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+		_, _ = writer.Write([]byte(`{"indexers":[{"id":"yts","name":"YTS","enabled":true},{"id":"rarbg","name":"RARBG","enabled":false}]}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newUserCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputPretty},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"indexers"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	rendered := stdout.String()
+	for _, expected := range []string{"Indexers: 2", "1. YTS [yts]", "Status: enabled", "2. RARBG [rarbg]", "Status: disabled"} {
+		if !strings.Contains(rendered, expected) {
+			t.Fatalf("pretty output missing %q in %q", expected, rendered)
+		}
+	}
+}
+
+func TestUserSettingsSetPatchMergesWithCurrentSettings(t *testing.T) {
+	t.Parallel()
+
+	requestCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		requestCount++
+		switch request.URL.Path {
+		case "/v4/chill.v4.UserService/GetUserSettings":
+			_, _ = writer.Write([]byte(`{"showTopMovies":false,"sortBy":"SORT_BY_SEEDERS","sortDirection":"SORT_DIRECTION_DESC"}`))
+		case "/v4/chill.v4.UserService/SaveUserSettings":
+			var payload map[string]any
+			if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+				t.Fatalf("decode payload: %v", err)
+			}
+			settings, ok := payload["settings"].(map[string]any)
+			if !ok {
+				t.Fatalf("settings = %#v", payload["settings"])
+			}
+			if settings["showTopMovies"] != true {
+				t.Fatalf("showTopMovies = %v, want true", settings["showTopMovies"])
+			}
+			if settings["sortBy"] != "SORT_BY_SEEDERS" {
+				t.Fatalf("sortBy = %v, want %q", settings["sortBy"], "SORT_BY_SEEDERS")
+			}
+			if settings["sortDirection"] != "SORT_DIRECTION_DESC" {
+				t.Fatalf("sortDirection = %v, want %q", settings["sortDirection"], "SORT_DIRECTION_DESC")
+			}
+			_, _ = writer.Write([]byte(`{"showTopMovies":true,"sortBy":"SORT_BY_SEEDERS","sortDirection":"SORT_DIRECTION_DESC"}`))
+		default:
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newUserCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"settings", "set", "show-top-movies", "true"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if requestCount != 2 {
+		t.Fatalf("requestCount = %d, want 2", requestCount)
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("output json decode error: %v", err)
+	}
+	if output["showTopMovies"] != true {
+		t.Fatalf("output = %#v", output)
+	}
+}
+
+func TestUserSettingsSetPatchDryRunDoesNotCallAPI(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	stdout := &bytes.Buffer{}
+	command := newUserCommand(&appContext{
+		opts:   &appOptions{configPath: configPath, output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"settings", "set", "sort-by", "title", "--dry-run"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("output json decode error: %v", err)
+	}
+	request, ok := output["request"].(map[string]any)
+	if !ok {
+		t.Fatalf("request = %#v", output["request"])
+	}
+	patch, ok := request["patch"].(map[string]any)
+	if !ok {
+		t.Fatalf("patch = %#v", request["patch"])
+	}
+	if patch["field"] != "sortBy" {
+		t.Fatalf("patch.field = %v, want %q", patch["field"], "sortBy")
+	}
+	if patch["value"] != "SORT_BY_TITLE" {
+		t.Fatalf("patch.value = %v, want %q", patch["value"], "SORT_BY_TITLE")
+	}
+}
+
+func TestUserSettingsSetRejectsMixedJSONAndPatchModes(t *testing.T) {
+	t.Parallel()
+
+	command := newUserCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: &bytes.Buffer{},
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"settings", "set", "show-top-movies", "true", "--json", `{"showTopMovies":true}`})
+	err := command.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	commandError, ok := err.(*cliError)
+	if !ok {
+		t.Fatalf("err = %#v, want *cliError", err)
+	}
+	if commandError.Code != "ambiguous_user_settings_update" {
+		t.Fatalf("Code = %q, want %q", commandError.Code, "ambiguous_user_settings_update")
+	}
+}
+
 func TestUserProfilePrettyOutputShowsReadableSummary(t *testing.T) {
 	t.Parallel()
 

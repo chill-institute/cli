@@ -13,7 +13,7 @@ Use `chilly` as the local command-line entrypoint for chill.institute. Prefer `-
 2. Use direct binary commands such as `chilly whoami --output json`.
 3. Fall back to `go run ./cmd/chilly ...` only when working from source in a maintainer checkout.
 4. Add `--output json` whenever the result will feed another tool or decision.
-5. Omit `--output json` when a human wants the built-in terminal summary from `whoami`, `search`, or `list-top-movies`.
+5. Omit `--output json` when a human wants the built-in terminal summary from `whoami`, `search`, `list-top-movies`, `user settings get`, or `user indexers`.
 6. Use `settings get api-base-url` before assuming which hosted environment is active.
 7. Use `schema` or `--describe` when you need to inspect the local CLI contract before running a command.
 8. Use `version` and `self-update --check` when you need release provenance before proposing an upgrade.
@@ -79,6 +79,10 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly user settings get --output json`
 - Read only selected settings:
   `chilly user settings get --fields showTopMovies,sortBy --output json`
+- Patch one setting:
+  `chilly user settings set show-top-movies true --output json`
+- Preview one patched setting:
+  `chilly user settings set sort-by title --dry-run --output json`
 - Preview full user settings update:
   `chilly user settings set --json '{"showTopMovies":true}' --dry-run --output json`
 - Show build metadata:
@@ -92,6 +96,7 @@ Read `references/commands.md` for a fuller command cookbook and current gotchas.
 - Prefer `--fields` when a command supports it and you only need a subset of the payload.
 - Check the active API base URL before mutating anything.
 - Prefer `--dry-run` before a mutation when you only need the request shape or want a safe preview.
+- Prefer the single-field `user settings set <field> <value>` form for routine settings changes, and keep `--json` for full replacement.
 - Expect prompts and browser-login hints on `stderr`; parse only `stdout`.
 - Expect failures in `--output json` mode to appear as a single JSON envelope on `stderr`.
 - Use `whoami` after auth changes when you need a positive confirmation that the token works.

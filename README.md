@@ -115,6 +115,8 @@ chilly settings show --output json
 # user commands
 chilly list-top-movies --output json
 chilly user settings get --output json
+chilly user settings set show-top-movies true --output json
+chilly user settings set sort-by title --dry-run --output json
 chilly add-transfer --url "magnet:?xt=..." --dry-run --output json
 chilly settings set api-base-url https://api.chill.institute --dry-run --output json
 chilly user settings set --json '{"showTopMovies":true}' --output json
@@ -146,7 +148,8 @@ The browser is still required for put.io authentication. `--no-browser` only dis
 
 Mutating commands that support `--dry-run` return a local preview of the request or config change instead of touching auth state, local config, or the API.
 Read commands that support `--fields` return only the selected paths from the JSON response.
-In default pretty mode, `whoami`, `search`, and `list-top-movies` render concise terminal summaries for humans.
+In default pretty mode, `whoami`, `search`, `list-top-movies`, `user settings get`, and `user indexers` render concise terminal summaries for humans.
+`chilly user settings set` supports both full JSON replacement and one-field patch updates for common settings.
 
 Examples:
 

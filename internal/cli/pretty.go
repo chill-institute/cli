@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -121,6 +122,80 @@ func renderTopMoviesPretty(value any) (string, bool, error) {
 	return strings.Join(lines, "\n"), true, nil
 }
 
+func renderUserIndexersPretty(value any) (string, bool, error) {
+	payload, ok := value.(map[string]any)
+	if !ok {
+		return "", false, nil
+	}
+
+	indexers, ok := payload["indexers"].([]any)
+	if !ok {
+		return "", false, nil
+	}
+
+	lines := []string{
+		fmt.Sprintf("Indexers: %d", len(indexers)),
+	}
+	if len(indexers) == 0 {
+		lines = append(lines, "", "No indexers configured.")
+		return strings.Join(lines, "\n"), true, nil
+	}
+
+	for index, item := range indexers[:min(len(indexers), maxPrettyListItems)] {
+		indexer, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		name := firstString(indexer, "name")
+		if name == "" {
+			name = firstString(indexer, "id")
+		}
+		if name == "" {
+			name = fmt.Sprintf("Indexer %d", index+1)
+		}
+
+		status := "disabled"
+		if enabled, ok := indexer["enabled"].(bool); ok && enabled {
+			status = "enabled"
+		}
+
+		line := fmt.Sprintf("%d. %s", index+1, name)
+		if id := firstString(indexer, "id"); id != "" && id != name {
+			line = fmt.Sprintf("%s [%s]", line, id)
+		}
+		lines = append(lines, line)
+		lines = append(lines, fmt.Sprintf("   Status: %s", status))
+	}
+	if len(indexers) > maxPrettyListItems {
+		lines = append(lines, fmt.Sprintf("... %d more indexers omitted. Use --output json for the full payload.", len(indexers)-maxPrettyListItems))
+	}
+
+	return strings.Join(lines, "\n"), true, nil
+}
+
+func renderUserSettingsPretty(value any) (string, bool, error) {
+	settings, ok := value.(map[string]any)
+	if !ok {
+		return "", false, nil
+	}
+	if len(settings) == 0 {
+		return "User settings are empty.", true, nil
+	}
+
+	keys := make([]string, 0, len(settings))
+	for key := range settings {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	lines := []string{"User Settings"}
+	for _, key := range keys {
+		lines = append(lines, fmt.Sprintf("%s: %s", key, prettyValue(settings[key])))
+	}
+	return strings.Join(lines, "\n"), true, nil
+}
+
 func appendIfString(lines []string, label string, payload map[string]any, keys ...string) []string {
 	if value := firstString(payload, keys...); value != "" {
 		return append(lines, fmt.Sprintf("%s: %s", label, value))
@@ -171,6 +246,33 @@ func formatNumeric(value float64) string {
 		return fmt.Sprintf("%d", int64(value))
 	}
 	return strings.TrimRight(strings.TrimRight(fmt.Sprintf("%.2f", value), "0"), ".")
+}
+
+func prettyValue(value any) string {
+	switch typed := value.(type) {
+	case nil:
+		return "null"
+	case string:
+		return typed
+	case bool:
+		if typed {
+			return "true"
+		}
+		return "false"
+	case float64:
+		return formatNumeric(typed)
+	case []any:
+		if len(typed) == 0 {
+			return "[]"
+		}
+		items := make([]string, 0, len(typed))
+		for _, item := range typed {
+			items = append(items, prettyValue(item))
+		}
+		return strings.Join(items, ", ")
+	default:
+		return fmt.Sprintf("%v", value)
+	}
 }
 
 func min(left int, right int) int {

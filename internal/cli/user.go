@@ -35,7 +35,7 @@ func newUserCommand(app *appContext) *cobra.Command {
 		Use:   "indexers",
 		Short: "List user indexers",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runUserRPC(app, procedureUserGetIndexers, map[string]any{})
+			return runUserRPCWithRenderer(app, procedureUserGetIndexers, map[string]any{}, nil, renderUserIndexersPretty)
 		},
 	})
 
@@ -111,27 +111,51 @@ func newUserSettingsCommand(app *appContext) *cobra.Command {
 	var rawSettings string
 	var dryRun bool
 	setCommand := &cobra.Command{
-		Use:   "set",
-		Short: "Save full user settings JSON payload",
+		Use:   "set [field] [value]",
+		Short: "Save full user settings JSON payload or patch one setting",
+		Args:  allowDescribeArgs(cobra.MaximumNArgs(2)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			trimmed := strings.TrimSpace(rawSettings)
-			if trimmed == "" {
-				return usageError("missing_json_payload", "--json is required")
+			if trimmed != "" {
+				if len(args) != 0 {
+					return usageError("ambiguous_user_settings_update", "use either --json or <field> <value>, not both")
+				}
+
+				var payload map[string]any
+				if err := json.Unmarshal([]byte(trimmed), &payload); err != nil {
+					return usageError("invalid_json_payload", "parse --json payload: %v", err)
+				}
+				request := map[string]any{"settings": payload}
+				if dryRun {
+					return app.writeDryRunPreview("user settings set", procedureUserSaveUserSettings, rpc.AuthUser, request)
+				}
+				return runUserRPC(app, procedureUserSaveUserSettings, request)
 			}
 
-			var payload map[string]any
-			if err := json.Unmarshal([]byte(trimmed), &payload); err != nil {
-				return usageError("invalid_json_payload", "parse --json payload: %v", err)
+			if len(args) != 2 {
+				return usageError("missing_user_settings_update", "provide either --json or <field> <value>")
 			}
-			request := map[string]any{"settings": payload}
+
+			patch, err := normalizeUserSettingsPatch(args[0], args[1])
+			if err != nil {
+				return err
+			}
 			if dryRun {
-				return app.writeDryRunPreview("user settings set", procedureUserSaveUserSettings, rpc.AuthUser, request)
+				return app.writeDryRunPreview("user settings set", procedureUserSaveUserSettings, rpc.AuthUser, map[string]any{
+					"patch": patch,
+				})
 			}
+
+			currentSettings, err := loadCurrentUserSettings(app)
+			if err != nil {
+				return err
+			}
+			request := map[string]any{"settings": applyUserSettingsPatch(currentSettings, patch)}
 			return runUserRPC(app, procedureUserSaveUserSettings, request)
 		},
 	}
 	setCommand.Flags().StringVar(&rawSettings, "json", "", "full settings object JSON")
-	setCommand.Flags().BoolVar(&dryRun, "dry-run", false, "validate input and print the request without executing it")
+	setCommand.Flags().BoolVar(&dryRun, "dry-run", false, "validate input and print the request or patch without executing it")
 	settingsCommand.AddCommand(setCommand)
 
 	return settingsCommand
@@ -168,10 +192,46 @@ func newUserTransferCommand(app *appContext) *cobra.Command {
 }
 
 func runUserRPC(app *appContext, procedure string, body any) error {
-	return runUserRPCWithFields(app, procedure, body, nil)
+	return runUserRPCWithRenderer(app, procedure, body, nil, nil)
+}
+
+func loadCurrentUserSettings(app *appContext) (map[string]any, error) {
+	cfg, err := app.loadConfig()
+	if err != nil {
+		return nil, err
+	}
+	token, err := app.userToken(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := app.callRPC(
+		context.Background(),
+		cfg,
+		procedureUserGetUserSettings,
+		map[string]any{},
+		rpc.AuthUser,
+		token,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("load current user settings: %w", err)
+	}
+
+	var settings map[string]any
+	if err := json.Unmarshal(response.Body, &settings); err != nil {
+		return nil, wrapInternalError("user_settings_decode_failed", "decode current user settings", err)
+	}
+	if settings == nil {
+		settings = map[string]any{}
+	}
+	return settings, nil
 }
 
 func runUserRPCWithFields(app *appContext, procedure string, body any, selection *fieldSelection) error {
+	return runUserRPCWithRenderer(app, procedure, body, selection, nil)
+}
+
+func runUserRPCWithRenderer(app *appContext, procedure string, body any, selection *fieldSelection, renderer prettyRenderer) error {
 	cfg, err := app.loadConfig()
 	if err != nil {
 		return err
@@ -192,13 +252,20 @@ func runUserRPCWithFields(app *appContext, procedure string, body any, selection
 	if err != nil {
 		return fmt.Errorf("user rpc call: %w", err)
 	}
-	return app.writeSelectedResponseBodyWithRenderer(response.Body, selection, prettyRendererForProcedure(procedure))
+	if renderer == nil {
+		renderer = prettyRendererForProcedure(procedure)
+	}
+	return app.writeSelectedResponseBodyWithRenderer(response.Body, selection, renderer)
 }
 
 func prettyRendererForProcedure(procedure string) prettyRenderer {
 	switch procedure {
+	case procedureUserGetIndexers:
+		return renderUserIndexersPretty
 	case procedureUserGetUserProfile:
 		return renderWhoamiPretty
+	case procedureUserGetUserSettings:
+		return renderUserSettingsPretty
 	case procedureUserSearch:
 		return renderSearchPretty
 	case procedureUserGetTopMovies:
