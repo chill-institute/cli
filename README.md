@@ -53,16 +53,11 @@ Released binaries use the `default` profile; dev builds default to `dev` so sour
 ## Verify Release
 
 ```bash
-curl -fsSLO https://github.com/chill-institute/cli/releases/download/v0.1.2/checksums.txt
-curl -fsSLO https://github.com/chill-institute/cli/releases/download/v0.1.2/checksums.txt.sigstore.json
-cosign verify-blob \
-  --bundle checksums.txt.sigstore.json \
-  --certificate-identity-regexp 'https://github.com/chill-institute/cli/.github/workflows/release.yml@refs/tags/.*' \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  checksums.txt
+curl -fsSLO https://github.com/chill-institute/cli/releases/download/v0.1.2/chilly_0.1.2_darwin_arm64.tar.gz
+gh attestation verify chilly_0.1.2_darwin_arm64.tar.gz --repo chill-institute/cli
 ```
 
-After that, verify the archive you downloaded matches `checksums.txt`.
+The install script verifies release checksums. Use GitHub attestation verification when you also want provenance from the release workflow.
 
 ## Docs
 

@@ -20,12 +20,11 @@ type releaseService interface {
 }
 
 var (
-	currentBuildInfo      = buildinfo.Current
-	newReleaseService     = func() releaseService { return update.NewClient(http.DefaultClient) }
-	currentExecutable     = os.Executable
-	currentRuntimeGOOS    = runtime.GOOS
-	currentRuntimeGOARCH  = runtime.GOARCH
-	verifySignedChecksums = update.VerifySignedChecksumsBundle
+	currentBuildInfo     = buildinfo.Current
+	newReleaseService    = func() releaseService { return update.NewClient(http.DefaultClient) }
+	currentExecutable    = os.Executable
+	currentRuntimeGOOS   = runtime.GOOS
+	currentRuntimeGOARCH = runtime.GOARCH
 )
 
 func newSelfUpdateCommand(app *appContext) *cobra.Command {
@@ -85,21 +84,10 @@ chilly self-update --version v0.1.0
 			if err != nil {
 				return wrapInternalError("resolve_checksums_asset_failed", "resolve release checksums", err)
 			}
-			sigstoreBundleAsset, err := update.FindSigstoreBundleAsset(release)
-			if err != nil {
-				return wrapInternalError("resolve_signed_checksums_asset_failed", "resolve signed release checksums bundle", err)
-			}
 
 			checksums, err := service.Download(ctx, checksumAsset.BrowserDownloadURL)
 			if err != nil {
 				return wrapInternalError("download_checksums_failed", "download release checksums", err)
-			}
-			sigstoreBundle, err := service.Download(ctx, sigstoreBundleAsset.BrowserDownloadURL)
-			if err != nil {
-				return wrapInternalError("download_signed_checksums_failed", "download signed release checksums bundle", err)
-			}
-			if err := verifySignedChecksums(ctx, checksums, sigstoreBundle); err != nil {
-				return wrapInternalError("verify_signed_checksums_failed", "verify signed release checksums", err)
 			}
 			archive, err := service.Download(ctx, asset.BrowserDownloadURL)
 			if err != nil {

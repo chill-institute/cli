@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
+      attestations: write
       contents: write
       id-token: write
 
@@ -51,20 +52,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
 
-      - name: Install cosign
-        uses: sigstore/cosign-installer@v3
-
-      - name: Sign release checksums
-        run: |
-          cosign sign-blob \
-            --yes \
-            --bundle dist/checksums.txt.sigstore.json \
-            dist/checksums.txt
-
-      - name: Upload signed checksums bundle
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload "${GITHUB_REF_NAME}" \
-            dist/checksums.txt.sigstore.json \
-            --clobber
+      - name: Attest release archives
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            dist/chilly_*.tar.gz
+            dist/chilly_*.zip
