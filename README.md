@@ -8,12 +8,12 @@ CLI client for [chill.institute](https://chill.institute), your favorite [put.io
 
 ```bash
 brew install chill-institute/tap/chilly
-chilly version --output json
+chilly version
 ```
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/chill-institute/cli/main/scripts/install.sh | bash
-chilly version --output json
+chilly version
 ```
 
 > [!NOTE]

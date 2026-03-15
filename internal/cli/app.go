@@ -91,7 +91,11 @@ func newAppContext(opts *appOptions) *appContext {
 func (app *appContext) configStore() (*config.Store, error) {
 	configPath := strings.TrimSpace(app.opts.configPath)
 	if configPath == "" {
-		defaultPath, err := resolveDefaultConfigPath(app.activeProfile())
+		activeProfile, err := app.activeProfile()
+		if err != nil {
+			return nil, err
+		}
+		defaultPath, err := resolveDefaultConfigPath(activeProfile)
 		if err != nil {
 			return nil, wrapInternalError("config_path_resolve_failed", "resolve config path", err)
 		}
@@ -105,12 +109,12 @@ func (app *appContext) configStore() (*config.Store, error) {
 	return store, nil
 }
 
-func (app *appContext) activeProfile() string {
+func (app *appContext) activeProfile() (string, error) {
 	profile, err := resolveConfigProfile(app.opts.profile, currentBuildInfo().IsDev())
 	if err != nil {
-		return config.DefaultProfile()
+		return "", wrapUsageError("invalid_profile", err)
 	}
-	return profile
+	return profile, nil
 }
 
 func (app *appContext) loadConfig() (config.Config, error) {
@@ -250,7 +254,7 @@ func (app *appContext) writeLocalDryRunPreview(commandID string, request any) er
 }
 
 func (app *appContext) readLine(prompt string) (string, error) {
-	if _, err := fmt.Fprint(app.stdout, prompt); err != nil {
+	if _, err := fmt.Fprint(app.stderr, prompt); err != nil {
 		return "", err
 	}
 	reader := bufio.NewReader(app.stdin)

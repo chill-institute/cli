@@ -46,6 +46,8 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly schema procedure chill.v4.UserService/Search --output json`
 - Describe a command without executing it:
   `chilly search --describe --output json`
+- Show the installed version quickly:
+  `chilly version`
 - Show installed build metadata:
   `chilly version --output json`
 - Check whether a newer published release exists:
@@ -99,6 +101,8 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly user folder get 0 --output json`
 - Preview full user settings update:
   `chilly user settings set --json '{"showTopMovies":true}' --dry-run --output json`
+- Show the installed version:
+  `chilly version`
 - Show build metadata:
   `chilly version --output json`
 

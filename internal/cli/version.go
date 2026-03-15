@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -16,6 +17,10 @@ chilly version --output json
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			info := currentBuildInfo()
+			if app.opts.output != outputJSON {
+				_, err := fmt.Fprintln(app.stdout, formatVersionLine(info.Version, info.Commit))
+				return wrapInternalError("stdout_write_failed", "write version output", err)
+			}
 			return app.writeJSONPayload(map[string]any{
 				"name":       "chilly",
 				"version":    info.Version,
@@ -23,5 +28,22 @@ chilly version --output json
 				"build_date": info.BuildDate,
 			})
 		},
+	}
+}
+
+func formatVersionLine(version string, commit string) string {
+	normalizedVersion := strings.TrimSpace(version)
+	if normalizedVersion == "" {
+		normalizedVersion = "dev"
+	}
+
+	normalizedCommit := strings.TrimSpace(commit)
+	switch {
+	case normalizedCommit == "", strings.EqualFold(normalizedCommit, "unknown"):
+		return normalizedVersion
+	case len(normalizedCommit) > 7:
+		return fmt.Sprintf("%s (%s)", normalizedVersion, normalizedCommit[:7])
+	default:
+		return fmt.Sprintf("%s (%s)", normalizedVersion, normalizedCommit)
 	}
 }

@@ -35,6 +35,8 @@ Dev builds default to a separate `dev` profile path unless `--profile`, `CHILLY_
 
 ## Version And Update
 
+- Show the installed version:
+  `chilly version`
 - Show build metadata:
   `chilly version --output json`
 - Check whether a newer release exists:

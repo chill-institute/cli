@@ -46,6 +46,9 @@ chilly self-update --version v0.1.0
 
 			release, err := resolveRelease(ctx, service, targetVersion)
 			if err != nil {
+				if classified := classifyError(err); classified != nil && classified.Kind == errorKindUsage {
+					return err
+				}
 				return wrapInternalError("resolve_release_failed", "resolve release metadata", err)
 			}
 
@@ -127,5 +130,9 @@ func resolveRelease(ctx context.Context, service releaseService, version string)
 	if update.NormalizeVersion(version) == "" {
 		return service.Latest(ctx)
 	}
-	return service.ByTag(ctx, version)
+	normalizedVersion, err := update.ValidateVersion(version)
+	if err != nil {
+		return update.Release{}, usageError("invalid_release_version", "%v", err)
+	}
+	return service.ByTag(ctx, normalizedVersion)
 }

@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -26,6 +27,8 @@ const (
 	checksumName   = "checksums.txt"
 	defaultAPIBase = "https://api.github.com"
 )
+
+var validVersionPattern = regexp.MustCompile(`^v[0-9A-Za-z][0-9A-Za-z._+-]*$`)
 
 type Release struct {
 	TagName string         `json:"tag_name"`
@@ -60,21 +63,42 @@ func (client Client) Latest(ctx context.Context) (Release, error) {
 }
 
 func (client Client) ByTag(ctx context.Context, version string) (Release, error) {
-	normalized := NormalizeVersion(version)
-	if normalized == "" {
-		return Release{}, errors.New("release version is required")
+	normalized, err := ValidateVersion(version)
+	if err != nil {
+		return Release{}, err
 	}
 	return client.fetchRelease(ctx, "/repos/"+repoOwner+"/"+repoName+"/releases/tags/"+normalized)
 }
 
 func (client Client) Download(ctx context.Context, downloadURL string) ([]byte, error) {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimSpace(downloadURL), nil)
+	parsedURL, err := validateDownloadURL(downloadURL)
+	if err != nil {
+		return nil, err
+	}
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("build download request: %w", err)
 	}
 	request.Header.Set("Accept", "application/octet-stream")
 
-	response, err := client.httpClient.Do(request)
+	httpClient := client.httpClient
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: 30 * time.Second}
+	}
+	downloadClient := *httpClient
+	originalRedirect := downloadClient.CheckRedirect
+	downloadClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		if _, err := validateDownloadURL(req.URL.String()); err != nil {
+			return err
+		}
+		if originalRedirect != nil {
+			return originalRedirect(req, via)
+		}
+		return nil
+	}
+
+	response, err := downloadClient.Do(request)
 	if err != nil {
 		return nil, fmt.Errorf("download release asset: %w", err)
 	}
@@ -105,6 +129,17 @@ func NormalizeVersion(version string) string {
 	return "v" + trimmed
 }
 
+func ValidateVersion(version string) (string, error) {
+	normalized := NormalizeVersion(version)
+	if normalized == "" {
+		return "", errors.New("release version is required")
+	}
+	if !validVersionPattern.MatchString(normalized) {
+		return "", fmt.Errorf("invalid release version %q", version)
+	}
+	return normalized, nil
+}
+
 func SameVersion(left string, right string) bool {
 	normalizedLeft := NormalizeVersion(left)
 	normalizedRight := NormalizeVersion(right)
@@ -112,9 +147,9 @@ func SameVersion(left string, right string) bool {
 }
 
 func ArchiveName(version string, goos string, goarch string) (string, error) {
-	normalizedVersion := NormalizeVersion(version)
-	if normalizedVersion == "" {
-		return "", errors.New("release version is required")
+	normalizedVersion, err := ValidateVersion(version)
+	if err != nil {
+		return "", err
 	}
 	assetVersion := strings.TrimPrefix(normalizedVersion, "v")
 
@@ -156,6 +191,29 @@ func FindChecksumAsset(release Release) (ReleaseAsset, error) {
 		}
 	}
 	return ReleaseAsset{}, fmt.Errorf("release asset %q not found", checksumName)
+}
+
+func validateDownloadURL(rawURL string) (*url.URL, error) {
+	parsedURL, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil {
+		return nil, fmt.Errorf("download release asset: parse url: %w", err)
+	}
+	if parsedURL.Scheme != "https" {
+		return nil, fmt.Errorf("download release asset: unsupported scheme %q", parsedURL.Scheme)
+	}
+	if !isAllowedDownloadHost(parsedURL.Hostname()) {
+		return nil, fmt.Errorf("download release asset: unsupported host %q", parsedURL.Hostname())
+	}
+	return parsedURL, nil
+}
+
+func isAllowedDownloadHost(host string) bool {
+	switch strings.ToLower(strings.TrimSpace(host)) {
+	case "github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com", "github-releases.githubusercontent.com":
+		return true
+	default:
+		return false
+	}
 }
 
 func VerifyAssetChecksum(assetName string, payload []byte, checksums []byte) error {

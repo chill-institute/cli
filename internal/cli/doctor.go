@@ -63,6 +63,10 @@ func (app *appContext) buildDoctorReport(ctx context.Context, offline bool) (map
 	if err != nil {
 		return nil, err
 	}
+	profile, err := app.activeProfile()
+	if err != nil {
+		return nil, err
+	}
 
 	info := currentBuildInfo()
 	auth := map[string]any{
@@ -90,7 +94,7 @@ func (app *appContext) buildDoctorReport(ctx context.Context, offline bool) (map
 			"dev":        info.IsDev(),
 		},
 		"config": map[string]any{
-			"profile": app.activeProfile(),
+			"profile": profile,
 			"path":    configPath,
 			"exists":  configExists,
 		},

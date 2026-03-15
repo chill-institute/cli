@@ -14,12 +14,12 @@ import (
 func TestReadLineTrimsInput(t *testing.T) {
 	t.Parallel()
 
-	stdout := &strings.Builder{}
+	stderr := &strings.Builder{}
 	app := &appContext{
 		opts:   &appOptions{output: outputJSON},
 		stdin:  strings.NewReader(" token-123 \n"),
-		stdout: stdout,
-		stderr: &strings.Builder{},
+		stdout: &strings.Builder{},
+		stderr: stderr,
 	}
 
 	line, err := app.readLine("token: ")
@@ -29,8 +29,8 @@ func TestReadLineTrimsInput(t *testing.T) {
 	if line != "token-123" {
 		t.Fatalf("line = %q", line)
 	}
-	if stdout.String() != "token: " {
-		t.Fatalf("prompt = %q", stdout.String())
+	if stderr.String() != "token: " {
+		t.Fatalf("prompt = %q", stderr.String())
 	}
 }
 
@@ -52,7 +52,11 @@ func TestActiveProfileUsesDevDefaultForDevBuilds(t *testing.T) {
 	t.Cleanup(func() { currentBuildInfo = original })
 
 	app := &appContext{opts: &appOptions{}}
-	if profile := app.activeProfile(); profile != "dev" {
+	profile, err := app.activeProfile()
+	if err != nil {
+		t.Fatalf("activeProfile() error = %v", err)
+	}
+	if profile != "dev" {
 		t.Fatalf("profile = %q, want %q", profile, "dev")
 	}
 }
@@ -61,8 +65,25 @@ func TestActiveProfileUsesExplicitProfile(t *testing.T) {
 	t.Parallel()
 
 	app := &appContext{opts: &appOptions{profile: "staging"}}
-	if profile := app.activeProfile(); profile != "staging" {
+	profile, err := app.activeProfile()
+	if err != nil {
+		t.Fatalf("activeProfile() error = %v", err)
+	}
+	if profile != "staging" {
 		t.Fatalf("profile = %q, want %q", profile, "staging")
+	}
+}
+
+func TestActiveProfileRejectsInvalidProfile(t *testing.T) {
+	t.Parallel()
+
+	app := &appContext{opts: &appOptions{profile: "../prod"}}
+	profile, err := app.activeProfile()
+	if err == nil {
+		t.Fatalf("activeProfile() error = nil, profile = %q", profile)
+	}
+	if !strings.Contains(err.Error(), "invalid profile") {
+		t.Fatalf("error = %v", err)
 	}
 }
 

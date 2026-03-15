@@ -229,6 +229,34 @@ func TestSelfUpdateRejectsChecksumMismatch(t *testing.T) {
 	}
 }
 
+func TestSelfUpdateRejectsInvalidVersionFlag(t *testing.T) {
+	restoreReleaseService := newReleaseService
+	newReleaseService = func() releaseService { return &stubReleaseService{} }
+	t.Cleanup(func() { newReleaseService = restoreReleaseService })
+
+	command := newSelfUpdateCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: &bytes.Buffer{},
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"--version", "../v1.2.3"})
+	err := command.Execute()
+	if err == nil {
+		t.Fatal("Execute() error = nil, want invalid version")
+	}
+	var classified *cliError
+	if !errors.As(err, &classified) {
+		t.Fatalf("error = %T, want *cliError", err)
+	}
+	if classified.Kind != errorKindUsage {
+		t.Fatalf("kind = %q", classified.Kind)
+	}
+	if classified.Code != "invalid_release_version" {
+		t.Fatalf("code = %q", classified.Code)
+	}
+}
+
 func mustTarGZBinary(t *testing.T, payload string) []byte {
 	t.Helper()
 

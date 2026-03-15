@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -175,21 +174,30 @@ func TestSameVersion(t *testing.T) {
 	}
 }
 
+func TestValidateVersionRejectsPathTraversal(t *testing.T) {
+	t.Parallel()
+
+	if _, err := ValidateVersion("../../evil"); err == nil {
+		t.Fatal("ValidateVersion() error = nil, want invalid version")
+	}
+}
+
 func TestLatestAndByTag(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		_ = json.NewEncoder(writer).Encode(Release{
+	client := NewClient(&http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		payload, err := json.Marshal(Release{
 			TagName: "v1.2.3",
 			Assets: []ReleaseAsset{
-				{Name: "chilly_1.2.3_darwin_arm64.tar.gz", BrowserDownloadURL: "https://example.invalid/chilly.tgz"},
+				{Name: "chilly_1.2.3_darwin_arm64.tar.gz", BrowserDownloadURL: "https://github.com/chill-institute/cli/releases/download/v1.2.3/chilly_1.2.3_darwin_arm64.tar.gz"},
 			},
 		})
-	}))
-	defer server.Close()
-
-	client := NewClient(server.Client())
-	client.baseURL = server.URL
+		if err != nil {
+			return nil, err
+		}
+		return jsonResponse(payload), nil
+	})})
+	client.baseURL = "https://api.github.com"
 
 	release, err := client.Latest(context.Background())
 	if err != nil {
@@ -211,13 +219,13 @@ func TestLatestAndByTag(t *testing.T) {
 func TestDownload(t *testing.T) {
 	t.Parallel()
 
-	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		_, _ = writer.Write([]byte("archive-bytes"))
-	}))
-	defer server.Close()
-
-	client := NewClient(server.Client())
-	payload, err := client.Download(context.Background(), server.URL)
+	client := NewClient(&http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		if request.URL.String() != "https://github.com/chill-institute/cli/releases/download/v1.2.3/chilly_1.2.3_darwin_arm64.tar.gz" {
+			t.Fatalf("request.URL = %q", request.URL.String())
+		}
+		return binaryResponse([]byte("archive-bytes")), nil
+	})})
+	payload, err := client.Download(context.Background(), "https://github.com/chill-institute/cli/releases/download/v1.2.3/chilly_1.2.3_darwin_arm64.tar.gz")
 	if err != nil {
 		t.Fatalf("Download() error = %v", err)
 	}
@@ -225,3 +233,40 @@ func TestDownload(t *testing.T) {
 		t.Fatalf("payload = %q", string(payload))
 	}
 }
+
+func TestDownloadRejectsDisallowedHost(t *testing.T) {
+	t.Parallel()
+
+	client := NewClient(&http.Client{})
+	if _, err := client.Download(context.Background(), "https://example.invalid/chilly.tar.gz"); err == nil {
+		t.Fatal("Download() error = nil, want invalid host")
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (fn roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
+	return fn(request)
+}
+
+func jsonResponse(payload []byte) *http.Response {
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       ioNopCloser{bytes.NewReader(payload)},
+		Header:     make(http.Header),
+	}
+}
+
+func binaryResponse(payload []byte) *http.Response {
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       ioNopCloser{bytes.NewReader(payload)},
+		Header:     make(http.Header),
+	}
+}
+
+type ioNopCloser struct {
+	*bytes.Reader
+}
+
+func (closer ioNopCloser) Close() error { return nil }
