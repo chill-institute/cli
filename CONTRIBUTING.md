@@ -63,3 +63,20 @@ The repository ships git hooks in `.githooks/`:
 - Keep commands and flags stable unless a change is clearly justified.
 - Update docs or examples when UX changes.
 - Add or update tests when behavior changes.
+
+## Release Flow
+
+Normal CLI change flow:
+
+1. Make the change.
+2. Run `mise run verify`.
+3. Merge or push to `main`.
+4. GitHub Actions runs `semantic-release` on `main` and creates the next `vX.Y.Z` tag from conventional commits.
+5. The existing tag-based GoReleaser workflow publishes release archives, creates the GitHub release, and updates the Homebrew tap.
+
+Versioning notes:
+
+- Releases are driven by conventional commits.
+- `feat:` produces a minor release.
+- `fix:`, `perf:`, `refactor:`, `docs:`, `test:`, `build:`, `ci:`, and `chore:` produce a patch release.
+- Breaking changes produce a major release.
