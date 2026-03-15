@@ -146,9 +146,11 @@ This keeps CLI command glue separate from reusable transport and release modules
 - In `--output json`, failures emit a single JSON error envelope to `stderr`.
 - Exit codes are classified into usage (`2`), auth (`3`), API (`4`), and internal (`5`) failures.
 
-For supported mutating commands, `--dry-run` validates local input and writes a deterministic request preview to `stdout` without loading auth or calling the API.
+For supported mutating commands, `--dry-run` validates local input and writes a deterministic request or config-change preview to `stdout` without mutating local state, loading auth, or calling the API.
 
 For supported read commands, `--fields` applies a client-side field mask to the JSON response before rendering it to `stdout`.
+
+In default pretty mode, the core read commands render small human-oriented summaries while `--output json` keeps the machine contract stable.
 
 ## Guardrails And Release Flow
 

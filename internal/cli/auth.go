@@ -131,13 +131,22 @@ func (app *appContext) loginWithBrowser(ctx context.Context, cfg config.Config, 
 }
 
 func newAuthLogoutCommand(app *appContext) *cobra.Command {
-	return &cobra.Command{
+	var dryRun bool
+
+	command := &cobra.Command{
 		Use:   "logout",
 		Short: "Clear auth token from local config",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := app.loadConfig()
 			if err != nil {
 				return err
+			}
+			request := map[string]any{
+				"clear_auth_token": true,
+				"had_auth_token":   strings.TrimSpace(cfg.AuthToken) != "",
+			}
+			if dryRun {
+				return app.writeLocalDryRunPreview("auth logout", request)
 			}
 			cfg.AuthToken = ""
 			if err := app.saveConfig(cfg); err != nil {
@@ -146,6 +155,9 @@ func newAuthLogoutCommand(app *appContext) *cobra.Command {
 			return app.writeJSONPayload(map[string]any{"status": "ok", "logged_out": true})
 		},
 	}
+
+	command.Flags().BoolVar(&dryRun, "dry-run", false, "preview the local auth token removal without saving it")
+	return command
 }
 
 func jsonMessage(raw []byte) any {
