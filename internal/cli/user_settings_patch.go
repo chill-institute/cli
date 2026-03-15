@@ -172,6 +172,15 @@ func supportedUserSettingsPatchInputs() []schemaInput {
 	return inputs
 }
 
+func supportedUserSettingsPatchHelp() string {
+	lines := make([]string, 0, len(userSettingsPatchSpecs)+1)
+	lines = append(lines, "Supported patch fields:")
+	for _, spec := range userSettingsPatchSpecs {
+		lines = append(lines, fmt.Sprintf("  - %s (%s): %s", kebabCase(spec.field), spec.valueType, spec.description))
+	}
+	return strings.Join(lines, "\n")
+}
+
 func normalizePatchFieldName(raw string) string {
 	trimmed := strings.TrimSpace(raw)
 	for _, spec := range userSettingsPatchSpecs {
@@ -185,6 +194,17 @@ func normalizePatchFieldName(raw string) string {
 		}
 	}
 	return trimmed
+}
+
+func kebabCase(raw string) string {
+	var builder strings.Builder
+	for index, r := range raw {
+		if index > 0 && r >= 'A' && r <= 'Z' {
+			builder.WriteByte('-')
+		}
+		builder.WriteRune(r)
+	}
+	return strings.ToLower(builder.String())
 }
 
 func normalizeBooleanValue(raw string) (any, error) {

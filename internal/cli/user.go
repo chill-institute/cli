@@ -116,7 +116,19 @@ func newUserSettingsCommand(app *appContext) *cobra.Command {
 	setCommand := &cobra.Command{
 		Use:   "set [field] [value]",
 		Short: "Save full user settings JSON payload or patch one setting",
-		Args:  allowDescribeArgs(cobra.MaximumNArgs(2)),
+		Long: strings.TrimSpace(`
+Save user settings in one of two modes:
+
+- full replacement with --json
+- single-field patching with <field> <value>
+
+` + supportedUserSettingsPatchHelp()),
+		Example: strings.TrimSpace(`
+chilly user settings set show-top-movies true
+chilly user settings set sort-by title --dry-run --output json
+chilly user settings set --json '{"showTopMovies":true}'
+`),
+		Args: allowDescribeArgs(cobra.MaximumNArgs(2)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			trimmed := strings.TrimSpace(rawSettings)
 			if trimmed != "" {
@@ -196,7 +208,11 @@ func newUserDownloadFolderCommand(app *appContext) *cobra.Command {
 	setCommand := &cobra.Command{
 		Use:   "set <id>",
 		Short: "Set the current download folder",
-		Args:  allowDescribeArgs(cobra.ExactArgs(1)),
+		Example: strings.TrimSpace(`
+chilly user download-folder set 42
+chilly user download-folder set 42 --dry-run --output json
+`),
+		Args: allowDescribeArgs(cobra.ExactArgs(1)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := normalizeFolderID(args[0])
 			if err != nil {
@@ -215,6 +231,10 @@ func newUserDownloadFolderCommand(app *appContext) *cobra.Command {
 	clearCommand := &cobra.Command{
 		Use:   "clear",
 		Short: "Clear the current download folder setting",
+		Example: strings.TrimSpace(`
+chilly user download-folder clear
+chilly user download-folder clear --dry-run --output json
+`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runUserSettingsPatch(app, userSettingsPatch{
 				Field: "downloadFolderId",
@@ -237,7 +257,11 @@ func newUserFolderCommand(app *appContext) *cobra.Command {
 	getCommand := &cobra.Command{
 		Use:   "get <id>",
 		Short: "Get one folder and its children",
-		Args:  allowDescribeArgs(cobra.ExactArgs(1)),
+		Example: strings.TrimSpace(`
+chilly user folder get 0
+chilly user folder get 42 --output json
+`),
+		Args: allowDescribeArgs(cobra.ExactArgs(1)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			id, err := normalizeFolderID(args[0])
 			if err != nil {

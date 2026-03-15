@@ -94,7 +94,11 @@ func newSettingsSetCommand(app *appContext) *cobra.Command {
 	command := &cobra.Command{
 		Use:   "set <key> <value>",
 		Short: "Set a local CLI setting value",
-		Args:  allowDescribeArgs(cobra.ExactArgs(2)),
+		Example: strings.TrimSpace(`
+chilly settings set api-base-url https://api.binge.institute
+chilly settings set api-base-url https://api.chill.institute --dry-run --output json
+`),
+		Args: allowDescribeArgs(cobra.ExactArgs(2)),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key, err := normalizeSettingsKey(args[0])
 			if err != nil {

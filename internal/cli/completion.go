@@ -33,6 +33,7 @@ func newCompletionCommand(app *appContext) *cobra.Command {
 chilly completion zsh > "${fpath[1]}/_chilly"
 chilly completion bash > ~/.local/share/bash-completion/completions/chilly
 chilly completion fish > ~/.config/fish/completions/chilly.fish
+chilly completion powershell > chilly.ps1
 `),
 	}
 }
