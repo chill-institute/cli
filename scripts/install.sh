@@ -60,10 +60,13 @@ if [[ -z "$requested_version" ]]; then
   exit 1
 fi
 
-archive_name="${binary_name}_${requested_version}_${os}_${arch}.tar.gz"
+release_tag="${requested_version}"
+asset_version="${release_tag#v}"
+
+archive_name="${binary_name}_${asset_version}_${os}_${arch}.tar.gz"
 checksums_name="checksums.txt"
-download_url="${github_download_base}/${repo}/releases/download/${requested_version}/${archive_name}"
-checksums_url="${github_download_base}/${repo}/releases/download/${requested_version}/${checksums_name}"
+download_url="${github_download_base}/${repo}/releases/download/${release_tag}/${archive_name}"
+checksums_url="${github_download_base}/${repo}/releases/download/${release_tag}/${checksums_name}"
 
 tmp_dir="$(mktemp -d)"
 cleanup() {
@@ -108,4 +111,4 @@ tar -xzf "${tmp_dir}/${archive_name}" -C "$tmp_dir"
 mkdir -p "$install_dir"
 install -m 0755 "${tmp_dir}/${binary_name}" "${install_dir}/${binary_name}"
 
-printf 'installed %s %s to %s/%s\n' "$binary_name" "$requested_version" "$install_dir" "$binary_name"
+printf 'installed %s %s to %s/%s\n' "$binary_name" "$release_tag" "$install_dir" "$binary_name"
