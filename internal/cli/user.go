@@ -26,12 +26,9 @@ chilly user download-folder
 	profileCommand := &cobra.Command{
 		Use:   "profile",
 		Short: "Show authenticated profile (alias for whoami)",
+		Long:  "Alias for the top-level whoami command.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			selection, err := parseFieldSelection(profileFields)
-			if err != nil {
-				return err
-			}
-			return runUserRPCWithFields(app, procedureUserGetUserProfile, map[string]any{}, selection)
+			return runWhoami(app, profileFields)
 		},
 	}
 	profileCommand.Flags().StringVar(&profileFields, "fields", "", "comma-separated field paths to include in the output")
@@ -51,20 +48,9 @@ chilly user download-folder
 	searchCommand := &cobra.Command{
 		Use:   "search",
 		Short: "Search using your saved profile settings",
+		Long:  "Alias for the top-level search command under the user namespace.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			trimmedQuery := strings.TrimSpace(query)
-			if trimmedQuery == "" {
-				return usageError("missing_query", "--query is required")
-			}
-			selection, err := parseFieldSelection(searchFields)
-			if err != nil {
-				return err
-			}
-			payload := map[string]any{"query": trimmedQuery}
-			if trimmedIndexer := strings.TrimSpace(indexerID); trimmedIndexer != "" {
-				payload["indexer_id"] = trimmedIndexer
-			}
-			return runUserRPCWithFields(app, procedureUserSearch, payload, selection)
+			return runSearch(app, query, indexerID, searchFields)
 		},
 	}
 	searchCommand.Flags().StringVar(&query, "query", "", "search query")
@@ -76,12 +62,9 @@ chilly user download-folder
 	topMoviesCommand := &cobra.Command{
 		Use:   "top-movies",
 		Short: "List top movies using your profile settings",
+		Long:  "Alias for the top-level list-top-movies command.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			selection, err := parseFieldSelection(topMoviesFields)
-			if err != nil {
-				return err
-			}
-			return runUserRPCWithFields(app, procedureUserGetTopMovies, map[string]any{}, selection)
+			return runListTopMovies(app, topMoviesFields)
 		},
 	}
 	topMoviesCommand.Flags().StringVar(&topMoviesFields, "fields", "", "comma-separated field paths to include in the output")
@@ -181,16 +164,9 @@ func newUserTransferCommand(app *appContext) *cobra.Command {
 	addCommand := &cobra.Command{
 		Use:   "add",
 		Short: "Add a transfer through chill.institute",
+		Long:  "Alias for the top-level add-transfer command under the user namespace.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			trimmed := strings.TrimSpace(transferURL)
-			if trimmed == "" {
-				return usageError("missing_url", "--url is required")
-			}
-			request := map[string]any{"url": trimmed}
-			if dryRun {
-				return app.writeDryRunPreview("user transfer add", procedureUserAddTransfer, rpc.AuthUser, request)
-			}
-			return runUserRPC(app, procedureUserAddTransfer, request)
+			return runAddTransfer(app, "user transfer add", transferURL, dryRun)
 		},
 	}
 	addCommand.Flags().StringVar(&transferURL, "url", "", "magnet or URL")

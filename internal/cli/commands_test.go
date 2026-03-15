@@ -555,6 +555,121 @@ func TestSettingsPathIncludesProfile(t *testing.T) {
 	}
 }
 
+func TestDoctorOfflineReportsLocalState(t *testing.T) {
+	t.Parallel()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: "https://api.binge.institute", AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newDoctorCommand(&appContext{
+		opts:    &appOptions{configPath: configPath, profile: "staging", output: outputJSON},
+		stdin:   strings.NewReader(""),
+		stdout:  stdout,
+		stderr:  &bytes.Buffer{},
+		openURL: func(string) error { return nil },
+	})
+	command.SetArgs([]string{"--offline"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("output json decode error: %v", err)
+	}
+	if output["status"] != "warn" {
+		t.Fatalf("status = %v, want %q", output["status"], "warn")
+	}
+
+	configPayload, ok := output["config"].(map[string]any)
+	if !ok {
+		t.Fatalf("config = %#v, want object", output["config"])
+	}
+	if configPayload["profile"] != "staging" {
+		t.Fatalf("config.profile = %v, want %q", configPayload["profile"], "staging")
+	}
+
+	authPayload, ok := output["auth"].(map[string]any)
+	if !ok {
+		t.Fatalf("auth = %#v, want object", output["auth"])
+	}
+	if authPayload["status"] != "skipped" {
+		t.Fatalf("auth.status = %v, want %q", authPayload["status"], "skipped")
+	}
+}
+
+func TestDoctorChecksStoredAuth(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/v4/chill.v4.UserService/GetUserProfile" {
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+		if got := request.Header.Get("Authorization"); got != "Bearer saved-token" {
+			t.Fatalf("Authorization = %q", got)
+		}
+		writer.Header().Set("X-Request-Id", "req-doctor")
+		_, _ = writer.Write([]byte(`{"username":"dunefan","email":"dune@example.com","userId":"7"}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	if err := store.Save(config.Config{APIBaseURL: server.URL, AuthToken: "saved-token"}); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	stdout := &bytes.Buffer{}
+	command := newDoctorCommand(&appContext{
+		opts:    &appOptions{configPath: configPath, output: outputJSON},
+		stdin:   strings.NewReader(""),
+		stdout:  stdout,
+		stderr:  &bytes.Buffer{},
+		openURL: func(string) error { return nil },
+	})
+	command.SetArgs(nil)
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("output json decode error: %v", err)
+	}
+	if output["status"] != "ok" {
+		t.Fatalf("status = %v, want %q", output["status"], "ok")
+	}
+
+	authPayload, ok := output["auth"].(map[string]any)
+	if !ok {
+		t.Fatalf("auth = %#v, want object", output["auth"])
+	}
+	if authPayload["status"] != "ok" {
+		t.Fatalf("auth.status = %v, want %q", authPayload["status"], "ok")
+	}
+	if authPayload["request_id"] != "req-doctor" {
+		t.Fatalf("auth.request_id = %v, want %q", authPayload["request_id"], "req-doctor")
+	}
+
+	userPayload, ok := authPayload["user"].(map[string]any)
+	if !ok {
+		t.Fatalf("auth.user = %#v, want object", authPayload["user"])
+	}
+	if userPayload["username"] != "dunefan" {
+		t.Fatalf("auth.user.username = %v, want %q", userPayload["username"], "dunefan")
+	}
+}
+
 func TestListTopMoviesUsesStoredToken(t *testing.T) {
 	t.Parallel()
 

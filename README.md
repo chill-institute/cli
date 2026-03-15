@@ -65,22 +65,25 @@ chilly auth login
 # 2) confirm the token works
 chilly whoami --output json
 
-# 3) inspect the local CLI contract
+# 3) inspect local config, auth, and environment health
+chilly doctor --output json
+
+# 4) inspect the local CLI contract
 chilly schema --output json
 
-# 4) search
+# 5) search
 chilly search --query "dune" --output json
 
-# 5) use the default pretty mode for a readable terminal summary
+# 6) use the default pretty mode for a readable terminal summary
 chilly search --query "dune"
 
-# 6) narrow a read response to the fields you need
+# 7) narrow a read response to the fields you need
 chilly search --query "dune" --fields results.title --output json
 
-# 7) add a transfer
+# 8) add a transfer
 chilly add-transfer --url "magnet:?xt=urn:btih:..." --output json
 
-# 8) preview a mutation without executing it
+# 9) preview a mutation without executing it
 chilly add-transfer --url "magnet:?xt=urn:btih:..." --dry-run --output json
 ```
 
@@ -94,6 +97,8 @@ chilly auth logout --output json
 chilly auth logout --dry-run --output json
 
 # discovery
+chilly doctor --output json
+chilly doctor --fields auth.status,config.profile --output json
 chilly schema command search --output json
 chilly search --describe --output json
 chilly completion zsh > "${fpath[1]}/_chilly"
@@ -167,11 +172,14 @@ The browser is still required for put.io authentication. `--no-browser` only dis
 
 Mutating commands that support `--dry-run` return a local preview of the request or config change instead of touching auth state, local config, or the API.
 Read commands that support `--fields` return only the selected paths from the JSON response.
+`chilly doctor` reports build, profile, config path, API base URL, and auth health in one place.
 In default pretty mode, `whoami`, `search`, `list-top-movies`, `user settings get`, and `user indexers` render concise terminal summaries for humans.
 `chilly user settings set` supports both full JSON replacement and one-field patch updates for common settings.
+Where top-level and nested `user ...` commands overlap, the top-level command is the canonical surface and the nested command is an alias under the user namespace.
 
 Examples:
 
+- `chilly doctor --output json`
 - `chilly schema --output json`
 - `chilly schema command search --output json`
 - `chilly schema procedure chill.v4.UserService/Search --output json`

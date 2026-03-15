@@ -87,6 +87,7 @@ chilly schema command search --output json
 
 	command.AddCommand(newAuthCommand(app))
 	command.AddCommand(newCompletionCommand(app))
+	command.AddCommand(newDoctorCommand(app))
 	command.AddCommand(newWhoamiCommand(app))
 	command.AddCommand(newSettingsCommand(app))
 	command.AddCommand(newSearchCommand(app))

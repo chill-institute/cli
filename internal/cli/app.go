@@ -194,6 +194,14 @@ func (app *appContext) writeJSONPayload(payload any) error {
 	return wrapInternalError("stdout_write_failed", "write output payload", err)
 }
 
+func (app *appContext) writeAnyWithRenderer(payload any, selection *fieldSelection, renderer prettyRenderer) error {
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return wrapInternalError("output_marshal_failed", "marshal output payload", err)
+	}
+	return app.writeSelectedResponseBodyWithRenderer(encoded, selection, renderer)
+}
+
 func (app *appContext) writeDryRunPreview(commandID string, procedure string, authMode rpc.AuthMode, request any) error {
 	return app.writeJSONPayload(dryRunPreview{
 		Status:    "ok",

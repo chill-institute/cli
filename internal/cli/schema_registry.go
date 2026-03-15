@@ -21,6 +21,7 @@ type schemaEntry struct {
 	ID              string        `json:"id"`
 	Kind            string        `json:"kind"`
 	Summary         string        `json:"summary"`
+	AliasFor        string        `json:"alias_for,omitempty"`
 	AuthMode        string        `json:"auth_mode"`
 	Mutates         bool          `json:"mutates"`
 	SupportsDryRun  bool          `json:"supports_dry_run"`
@@ -92,6 +93,18 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Output:         schemaOutput{JSON: true, Human: true},
 		Inputs: appendInputs(
 			schemaInput{Name: "dry-run", Type: "boolean", Description: "validate input and print the local config change without saving it"},
+		),
+	},
+	"doctor": {
+		ID:             "doctor",
+		Kind:           "command",
+		Summary:        "Inspect CLI health, config, and auth status",
+		AuthMode:       string(rpcAuthNone),
+		SupportsFields: true,
+		Output:         schemaOutput{JSON: true, Human: true},
+		Inputs: appendInputs(
+			schemaInput{Name: "offline", Type: "boolean", Description: "skip auth verification and only inspect local state"},
+			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
 	},
 	"completion": {
@@ -294,6 +307,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		ID:              "user profile",
 		Kind:            "command",
 		Summary:         "Show authenticated profile (alias for whoami)",
+		AliasFor:        "whoami",
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetUserProfile,
@@ -306,6 +320,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		ID:              "user search",
 		Kind:            "command",
 		Summary:         "Search using your saved profile settings",
+		AliasFor:        "search",
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserSearch,
@@ -356,6 +371,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		ID:              "user top-movies",
 		Kind:            "command",
 		Summary:         "List top movies using your profile settings",
+		AliasFor:        "list-top-movies",
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTopMovies,
@@ -376,6 +392,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		ID:              "user transfer add",
 		Kind:            "command",
 		Summary:         "Add a transfer through chill.institute",
+		AliasFor:        "add-transfer",
 		AuthMode:        string(rpcAuthUser),
 		Mutates:         true,
 		SupportsDryRun:  true,

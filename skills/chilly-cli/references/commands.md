@@ -4,6 +4,10 @@ Use these patterns when you need the CLI to do real work.
 
 ## Environment Discovery
 
+- Full local diagnostics:
+  `chilly doctor --output json`
+- Narrow diagnostics to specific fields:
+  `chilly doctor --fields auth.status,config.profile --output json`
 - Current API host:
   `chilly settings get api-base-url --output json`
 - Full local config:
@@ -127,6 +131,7 @@ Dev builds default to a separate `dev` profile path unless `--profile`, `CHILLY_
 ## Output Discipline
 
 - For automation, always request `--output json`.
+- Prefer top-level canonical commands when both top-level and `user ...` forms exist.
 - Human-facing notices may appear on `stderr`.
 - Command data is intended to be parsed from `stdout`.
 - In JSON mode, failures are emitted as a single JSON envelope on `stderr`.

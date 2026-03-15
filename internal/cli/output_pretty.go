@@ -256,9 +256,71 @@ func renderFolderPretty(value any) (string, bool, error) {
 	return strings.Join(lines, "\n"), true, nil
 }
 
+func renderDoctorPretty(value any) (string, bool, error) {
+	payload, ok := value.(map[string]any)
+	if !ok {
+		return "", false, nil
+	}
+
+	lines := []string{"Doctor"}
+	lines = appendDoctorLine(lines, "Status", payload, "status")
+
+	if build, ok := payload["build"].(map[string]any); ok {
+		lines = append(lines, "")
+		lines = append(lines, "Build")
+		lines = appendDoctorLine(lines, "Version", build, "version")
+		lines = appendDoctorLine(lines, "Commit", build, "commit")
+		lines = appendDoctorLine(lines, "Build Date", build, "build_date")
+		lines = appendDoctorLine(lines, "Dev Build", build, "dev")
+	}
+
+	if config, ok := payload["config"].(map[string]any); ok {
+		lines = append(lines, "")
+		lines = append(lines, "Config")
+		lines = appendDoctorLine(lines, "Profile", config, "profile")
+		lines = appendDoctorLine(lines, "Path", config, "path")
+		lines = appendDoctorLine(lines, "Exists", config, "exists")
+	}
+
+	if api, ok := payload["api"].(map[string]any); ok {
+		lines = append(lines, "")
+		lines = append(lines, "API")
+		lines = appendDoctorLine(lines, "Base URL", api, "base_url")
+	}
+
+	if auth, ok := payload["auth"].(map[string]any); ok {
+		lines = append(lines, "")
+		lines = append(lines, "Auth")
+		lines = appendDoctorLine(lines, "Configured", auth, "configured")
+		lines = appendDoctorLine(lines, "Status", auth, "status")
+		lines = appendDoctorLine(lines, "Request ID", auth, "request_id")
+		lines = appendDoctorLine(lines, "Code", auth, "code")
+		lines = appendDoctorLine(lines, "Message", auth, "message")
+
+		if user, ok := auth["user"].(map[string]any); ok {
+			lines = appendDoctorLine(lines, "Username", user, "username")
+			lines = appendDoctorLine(lines, "Email", user, "email")
+			lines = appendDoctorLine(lines, "User ID", user, "userId", "user_id")
+			lines = appendDoctorLine(lines, "Plan", user, "plan")
+		}
+	}
+
+	return strings.Join(lines, "\n"), true, nil
+}
+
 func appendIfString(lines []string, label string, payload map[string]any, keys ...string) []string {
 	if value := firstString(payload, keys...); value != "" {
 		return append(lines, fmt.Sprintf("%s: %s", label, value))
+	}
+	return lines
+}
+
+func appendDoctorLine(lines []string, label string, payload map[string]any, keys ...string) []string {
+	for _, key := range keys {
+		if value, ok := payload[key]; ok {
+			lines = append(lines, fmt.Sprintf("%s: %s", label, prettyValue(value)))
+			return lines
+		}
 	}
 	return lines
 }

@@ -31,6 +31,7 @@ graph LR
 graph TD
   Root["chilly"] --> Auth["auth"]
   Root --> Schema["schema"]
+  Root --> Doctor["doctor"]
   Root --> Whoami["whoami"]
   Root --> Settings["settings"]
   Root --> Search["search"]
@@ -48,6 +49,7 @@ Current command groups:
 | `auth` | login/logout and token acquisition |
 | `completion` | generate shell completion scripts |
 | `schema` | inspect local command and procedure metadata |
+| `doctor` | inspect build, config, API host, and auth health |
 | `whoami` | verify current auth state |
 | `settings` | inspect and update local CLI config |
 | `search` | run search against the hosted API |
@@ -121,6 +123,7 @@ That registry is the source of truth for:
 
 - `chilly schema`
 - `chilly <command> --describe`
+- canonical-vs-alias metadata for overlapping top-level and nested commands
 - current `--dry-run` support for selected mutating commands
 - current `--fields` support for selected read commands
 
@@ -164,6 +167,8 @@ For supported mutating commands, `--dry-run` validates local input and writes a 
 For supported read commands, `--fields` applies a client-side field mask to the JSON response before rendering it to `stdout`.
 
 In default pretty mode, the core read commands render small human-oriented summaries while `--output json` keeps the machine contract stable.
+
+`doctor` is a read-only diagnostic surface. It reports the active profile, resolved config path, API base URL, build metadata, and auth health. In online mode it verifies the saved token with the user profile RPC; `--offline` limits the report to local state.
 
 ## Guardrails And Release Flow
 

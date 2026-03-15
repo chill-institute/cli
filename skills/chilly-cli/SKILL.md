@@ -16,11 +16,12 @@ Use `chilly` as the local command-line entrypoint for chill.institute. Prefer `-
 5. Omit `--output json` when a human wants the built-in terminal summary from `whoami`, `search`, `list-top-movies`, `user settings get`, or `user indexers`.
 6. Use `settings get api-base-url` before assuming which hosted environment is active.
 7. Use `--profile <name>` when you need an isolated config path instead of reusing the default profile.
-8. Use `schema` or `--describe` when you need to inspect the local CLI contract before running a command.
-9. Use `version` and `self-update --check` when you need release provenance before proposing an upgrade.
-10. Use `--dry-run` on supported mutating commands when you need to preview a request safely.
-11. Use `--fields` on supported read commands when you only need a stable subset of the JSON response.
-12. Use `completion` when you need shell integration on a human workstation.
+8. Use `doctor` before debugging auth, profile, config path, or environment mismatches.
+9. Use `schema` or `--describe` when you need to inspect the local CLI contract before running a command.
+10. Use `version` and `self-update --check` when you need release provenance before proposing an upgrade.
+11. Use `--dry-run` on supported mutating commands when you need to preview a request safely.
+12. Use `--fields` on supported read commands when you only need a stable subset of the JSON response.
+13. Use `completion` when you need shell integration on a human workstation.
 
 ## Auth
 
@@ -60,6 +61,8 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly settings path --output json`
 - Use an isolated dev profile:
   `chilly --profile dev settings show --output json`
+- Run full local diagnostics:
+  `chilly doctor --output json`
 - Point to staging:
   `chilly settings set api-base-url https://api.binge.institute`
 - Point to production:
@@ -108,8 +111,10 @@ Read `references/commands.md` for a fuller command cookbook and current gotchas.
 - Prefer `--output json` for automation.
 - Prefer `--fields` when a command supports it and you only need a subset of the payload.
 - Check the active API base URL before mutating anything.
+- Use `doctor` when auth, config path, or profile state looks inconsistent.
 - Prefer `--dry-run` before a mutation when you only need the request shape or want a safe preview.
 - Prefer the single-field `user settings set <field> <value>` form for routine settings changes, and keep `--json` for full replacement.
 - Expect prompts and browser-login hints on `stderr`; parse only `stdout`.
 - Expect failures in `--output json` mode to appear as a single JSON envelope on `stderr`.
 - Use `whoami` after auth changes when you need a positive confirmation that the token works.
+- Prefer top-level commands like `search`, `whoami`, `list-top-movies`, and `add-transfer`; use nested `user ...` aliases only when namespacing helps.
