@@ -37,6 +37,10 @@ type appContext struct {
 	stderr          io.Writer
 	openURL         func(string) error
 	authFlowTimeout time.Duration
+	isTerminal      func(io.Writer) bool
+	newTicker       func(time.Duration) progressTicker
+	progressLabel   string
+	progressEvery   time.Duration
 }
 
 type dryRunPreview struct {
@@ -50,6 +54,23 @@ type dryRunPreview struct {
 
 type prettyRenderer func(any) (string, bool, error)
 
+type progressTicker interface {
+	C() <-chan time.Time
+	Stop()
+}
+
+type realProgressTicker struct {
+	ticker *time.Ticker
+}
+
+func (ticker realProgressTicker) C() <-chan time.Time {
+	return ticker.ticker.C
+}
+
+func (ticker realProgressTicker) Stop() {
+	ticker.ticker.Stop()
+}
+
 func newAppContext(opts *appOptions) *appContext {
 	return &appContext{
 		opts:            opts,
@@ -58,6 +79,12 @@ func newAppContext(opts *appOptions) *appContext {
 		stderr:          os.Stderr,
 		openURL:         openBrowser,
 		authFlowTimeout: 2 * time.Minute,
+		isTerminal:      writerIsTerminal,
+		newTicker: func(interval time.Duration) progressTicker {
+			return realProgressTicker{ticker: time.NewTicker(interval)}
+		},
+		progressLabel: "Loading",
+		progressEvery: 120 * time.Millisecond,
 	}
 }
 
@@ -129,11 +156,16 @@ func (app *appContext) callRPC(
 	authMode rpc.AuthMode,
 	authToken string,
 ) (rpc.CallResponse, error) {
-	response, err := app.rpcClient(cfg).Call(ctx, rpc.CallRequest{
-		Procedure: procedure,
-		Body:      body,
-		AuthMode:  authMode,
-		AuthToken: authToken,
+	var response rpc.CallResponse
+	err := app.withProgress(func() error {
+		var callErr error
+		response, callErr = app.rpcClient(cfg).Call(ctx, rpc.CallRequest{
+			Procedure: procedure,
+			Body:      body,
+			AuthMode:  authMode,
+			AuthToken: authToken,
+		})
+		return callErr
 	})
 	if err != nil {
 		return rpc.CallResponse{}, err
@@ -229,6 +261,61 @@ func (app *appContext) readLine(prompt string) (string, error) {
 	return strings.TrimSpace(line), nil
 }
 
+func (app *appContext) withProgress(run func() error) error {
+	if run == nil {
+		return nil
+	}
+	if !app.shouldShowProgress() {
+		return run()
+	}
+
+	ticker := app.newTicker(app.progressEvery)
+	defer ticker.Stop()
+
+	done := make(chan struct{})
+	go app.renderProgress(done, ticker)
+
+	err := run()
+	close(done)
+	app.clearProgress()
+	return err
+}
+
+func (app *appContext) shouldShowProgress() bool {
+	return app != nil &&
+		app.opts != nil &&
+		app.opts.output == outputPretty &&
+		app.stderr != nil &&
+		app.isTerminal != nil &&
+		app.isTerminal(app.stderr)
+}
+
+func (app *appContext) renderProgress(done <-chan struct{}, ticker progressTicker) {
+	frames := []string{"-", "\\", "|", "/"}
+	frameIndex := 0
+
+	for {
+		if _, err := fmt.Fprintf(app.stderr, "\r%s %s", frames[frameIndex%len(frames)], app.progressLabel); err != nil {
+			return
+		}
+
+		select {
+		case <-done:
+			return
+		case <-ticker.C():
+			frameIndex++
+		}
+	}
+}
+
+func (app *appContext) clearProgress() {
+	if app == nil || app.stderr == nil {
+		return
+	}
+	width := len(app.progressLabel) + 4
+	_, _ = fmt.Fprintf(app.stderr, "\r%s\r", strings.Repeat(" ", width))
+}
+
 func normalizeJSON(raw []byte, mode string, selection *fieldSelection) ([]byte, error) {
 	trimmed := bytes.TrimSpace(raw)
 	if len(trimmed) == 0 {
@@ -267,4 +354,16 @@ func openBrowser(rawURL string) error {
 		return fmt.Errorf("open browser: %w", err)
 	}
 	return nil
+}
+
+func writerIsTerminal(writer io.Writer) bool {
+	file, ok := writer.(*os.File)
+	if !ok {
+		return false
+	}
+	info, err := file.Stat()
+	if err != nil {
+		return false
+	}
+	return (info.Mode() & os.ModeCharDevice) != 0
 }

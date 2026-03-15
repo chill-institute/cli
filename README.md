@@ -191,6 +191,8 @@ In `--output json` mode:
 - failures are emitted as a single JSON envelope on `stderr`
 - exit classes are `0` success, `2` usage, `3` auth, `4` API, `5` internal
 
+In pretty mode, API-backed commands may show a transient loading indicator on `stderr` while waiting for the network.
+
 ## Docs
 
 - [Architecture](./docs/ARCHITECTURE.md)

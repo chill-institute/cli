@@ -115,6 +115,7 @@ Read `references/commands.md` for a fuller command cookbook and current gotchas.
 - Prefer `--dry-run` before a mutation when you only need the request shape or want a safe preview.
 - Prefer the single-field `user settings set <field> <value>` form for routine settings changes, and keep `--json` for full replacement.
 - Expect prompts and browser-login hints on `stderr`; parse only `stdout`.
+- Expect transient loading indicators on `stderr` in pretty mode for network-backed commands.
 - Expect failures in `--output json` mode to appear as a single JSON envelope on `stderr`.
 - Use `whoami` after auth changes when you need a positive confirmation that the token works.
 - Prefer top-level commands like `search`, `whoami`, `list-top-movies`, and `add-transfer`; use nested `user ...` aliases only when namespacing helps.
