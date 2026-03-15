@@ -105,7 +105,7 @@ func newSettingsSetCommand(app *appContext) *cobra.Command {
 		Short: "Set one local CLI setting",
 		Example: strings.TrimSpace(`
 chilly settings set api-base-url https://api.binge.institute
-chilly settings set api-base-url https://api.chill.institute --dry-run --output json
+chilly settings set api-base-url https://api.binge.institute --dry-run --output json
 `),
 		Args: allowDescribeArgs(cobra.ExactArgs(2)),
 		RunE: func(cmd *cobra.Command, args []string) error {

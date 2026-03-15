@@ -65,10 +65,8 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly doctor --output json`
 - Point to staging:
   `chilly settings set api-base-url https://api.binge.institute`
-- Point to production:
-  `chilly settings set api-base-url https://api.chill.institute`
 - Preview an API host change without saving it:
-  `chilly settings set api-base-url https://api.chill.institute --dry-run --output json`
+  `chilly settings set api-base-url https://api.binge.institute --dry-run --output json`
 - Search:
   `chilly search --query "dune" --output json`
 - Search with a smaller response:
