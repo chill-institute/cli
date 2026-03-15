@@ -19,26 +19,31 @@ chilly version
 > [!NOTE]
 > `chilly` is currently in beta and uses the staging backend at `api.binge.institute`
 
-## Agent-First Contract
+## Quickstart
 
-`chilly` is designed for both humans and agents.
+### Prompt for Agents
 
-- `chilly schema` and `--describe` expose the local command contract.
-- `--fields` narrows read responses to the paths you need.
-- `--dry-run` previews supported mutations without touching local config or the API.
-- `chilly doctor` reports build, profile, config path, API base URL, and auth health in one place.
-- In `--output json` mode, results go to `stdout` and failures go to `stderr` as one JSON envelope.
-- In pretty mode, core read commands render concise summaries for humans.
+```text
+Use `chilly` to interact with chill.institute.
 
-```bash
-chilly schema --output json
-chilly search --describe --output json
-chilly doctor --fields auth.status,config.profile --output json
-chilly search --query "dune" --fields results.title --output json
-chilly add-transfer --url "magnet:?xt=urn:btih:..." --dry-run --output json
+Repository:
+https://github.com/chill-institute/cli
+
+Before using the CLI:
+1. Read the install instructions in the repo README:
+   https://github.com/chill-institute/cli/blob/main/README.md
+2. Download and follow the CLI usage skill:
+   https://raw.githubusercontent.com/chill-institute/cli/main/skills/chilly-cli/SKILL.md
+
+Install `chilly` if it is not already on PATH.
+
+After install, run:
+chilly doctor --output json
+
+Then follow the skill for command usage, output conventions, and safe mutation patterns
 ```
 
-## Quickstart
+### Commands for Humans
 
 ```bash
 chilly auth login
