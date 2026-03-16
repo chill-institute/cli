@@ -63,7 +63,7 @@ func (err APIError) Error() string {
 func NewClient(baseURL string, httpClient *http.Client) *Client {
 	trimmedBaseURL := strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if trimmedBaseURL == "" {
-		trimmedBaseURL = "https://api.binge.institute"
+		trimmedBaseURL = "https://api.chill.institute"
 	}
 
 	client := httpClient

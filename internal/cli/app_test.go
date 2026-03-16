@@ -64,13 +64,13 @@ func TestActiveProfileUsesDevDefaultForDevBuilds(t *testing.T) {
 func TestActiveProfileUsesExplicitProfile(t *testing.T) {
 	t.Parallel()
 
-	app := &appContext{opts: &appOptions{profile: "staging"}}
+	app := &appContext{opts: &appOptions{profile: "production"}}
 	profile, err := app.activeProfile()
 	if err != nil {
 		t.Fatalf("activeProfile() error = %v", err)
 	}
-	if profile != "staging" {
-		t.Fatalf("profile = %q, want %q", profile, "staging")
+	if profile != "production" {
+		t.Fatalf("profile = %q, want %q", profile, "production")
 	}
 }
 

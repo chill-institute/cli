@@ -17,7 +17,7 @@ Use these patterns when you need the CLI to do real work.
 - Config file path for an isolated profile:
   `chilly settings path --profile dev --output json`
 
-Fresh configs default to `https://api.binge.institute`. Saved local config can override that.
+Fresh configs default to `https://api.chill.institute`. Saved local config can override that.
 Dev builds default to a separate `dev` profile path unless `--profile`, `CHILLY_PROFILE`, or `--config` overrides it.
 
 ## Schema And Describe
@@ -134,7 +134,7 @@ Dev builds default to a separate `dev` profile path unless `--profile`, `CHILLY_
 - Preview the full settings payload:
   `chilly user settings set --json '{"showTopMovies":true}' --dry-run --output json`
 - Preview a local CLI settings change:
-  `chilly settings set api-base-url https://api.binge.institute --dry-run --output json`
+  `chilly settings set api-base-url https://api.chill.institute --dry-run --output json`
 
 ## Output Discipline
 

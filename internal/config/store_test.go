@@ -142,14 +142,14 @@ func TestResolveProfileUsesDevDefaultForDevBuilds(t *testing.T) {
 }
 
 func TestResolveProfileUsesEnvironmentOverride(t *testing.T) {
-	t.Setenv(envProfile, "staging")
+	t.Setenv(envProfile, "production")
 
 	profile, err := ResolveProfile("", false)
 	if err != nil {
 		t.Fatalf("ResolveProfile() error = %v", err)
 	}
-	if profile != "staging" {
-		t.Fatalf("profile = %q, want %q", profile, "staging")
+	if profile != "production" {
+		t.Fatalf("profile = %q, want %q", profile, "production")
 	}
 }
 

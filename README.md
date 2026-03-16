@@ -1,6 +1,6 @@
 # chill-institute-cli
 
-![chill.institute cli](https://binge.institute/banner.png)
+![chill.institute cli](https://chill.institute/banner.png)
 
 CLI client for [chill.institute](https://chill.institute), your favorite [put.io](https://put.io) extension since 2018.
 
@@ -17,7 +17,7 @@ chilly version
 ```
 
 > [!NOTE]
-> `chilly` is currently in beta and uses the staging backend at `api.binge.institute`
+> `chilly` is currently in beta and uses the production backend at `api.chill.institute`
 
 ## Quickstart
 
@@ -42,7 +42,7 @@ If auth is missing and browser login is possible, run:
 chilly auth login
 
 If browser login is not possible on the CLI machine, ask the user to open this page in a signed-in browser and copy the token:
-https://binge.institute/auth/cli-token
+https://chill.institute/auth/cli-token
 
 Then use:
 chilly auth login --token <token>

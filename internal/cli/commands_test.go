@@ -189,7 +189,7 @@ func TestAuthLogoutDryRunKeepsToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewStore() error = %v", err)
 	}
-	if err := store.Save(config.Config{APIBaseURL: "https://api.binge.institute", AuthToken: "token-1"}); err != nil {
+	if err := store.Save(config.Config{APIBaseURL: "https://api.chill.institute", AuthToken: "token-1"}); err != nil {
 		t.Fatalf("Save() error = %v", err)
 	}
 
@@ -532,7 +532,7 @@ func TestSettingsPathIncludesProfile(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "config.json")
 	stdout := &bytes.Buffer{}
 	command := newSettingsCommand(&appContext{
-		opts:    &appOptions{configPath: configPath, profile: "staging", output: outputJSON},
+		opts:    &appOptions{configPath: configPath, profile: "production", output: outputJSON},
 		stdin:   strings.NewReader(""),
 		stdout:  stdout,
 		stderr:  &bytes.Buffer{},
@@ -550,8 +550,8 @@ func TestSettingsPathIncludesProfile(t *testing.T) {
 	if output["path"] != configPath {
 		t.Fatalf("path = %v, want %q", output["path"], configPath)
 	}
-	if output["profile"] != "staging" {
-		t.Fatalf("profile = %v, want %q", output["profile"], "staging")
+	if output["profile"] != "production" {
+		t.Fatalf("profile = %v, want %q", output["profile"], "production")
 	}
 }
 
@@ -563,13 +563,13 @@ func TestDoctorOfflineReportsLocalState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewStore() error = %v", err)
 	}
-	if err := store.Save(config.Config{APIBaseURL: "https://api.binge.institute", AuthToken: "saved-token"}); err != nil {
+	if err := store.Save(config.Config{APIBaseURL: "https://api.chill.institute", AuthToken: "saved-token"}); err != nil {
 		t.Fatalf("Save() error = %v", err)
 	}
 
 	stdout := &bytes.Buffer{}
 	command := newDoctorCommand(&appContext{
-		opts:    &appOptions{configPath: configPath, profile: "staging", output: outputJSON},
+		opts:    &appOptions{configPath: configPath, profile: "production", output: outputJSON},
 		stdin:   strings.NewReader(""),
 		stdout:  stdout,
 		stderr:  &bytes.Buffer{},
@@ -592,8 +592,8 @@ func TestDoctorOfflineReportsLocalState(t *testing.T) {
 	if !ok {
 		t.Fatalf("config = %#v, want object", output["config"])
 	}
-	if configPayload["profile"] != "staging" {
-		t.Fatalf("config.profile = %v, want %q", configPayload["profile"], "staging")
+	if configPayload["profile"] != "production" {
+		t.Fatalf("config.profile = %v, want %q", configPayload["profile"], "production")
 	}
 
 	authPayload, ok := output["auth"].(map[string]any)

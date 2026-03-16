@@ -14,7 +14,7 @@ const (
 	appDirName      = "chilly"
 	profilesDirName = "profiles"
 	configFileName  = "config.json"
-	defaultAPIBase  = "https://api.binge.institute"
+	defaultAPIBase  = "https://api.chill.institute"
 	defaultProfile  = "default"
 	devProfile      = "dev"
 	envProfile      = "CHILLY_PROFILE"

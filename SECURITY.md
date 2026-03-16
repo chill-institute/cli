@@ -30,7 +30,7 @@ Useful reports include issues involving:
 
 Security fixes are applied on a best-effort basis to the latest released CLI version and the latest code on `main`.
 
-`chilly` is currently in beta and defaults to the staging backend at `https://api.binge.institute`.
+`chilly` is currently in beta and defaults to the production backend at `https://api.chill.institute`.
 
 ## Release Integrity
 

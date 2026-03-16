@@ -194,7 +194,7 @@ func TestRunAuthLogoutDryRunReturnsLocalPreview(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewStore() error = %v", err)
 	}
-	if err := store.Save(config.Config{APIBaseURL: "https://api.binge.institute", AuthToken: "saved-token"}); err != nil {
+	if err := store.Save(config.Config{APIBaseURL: "https://api.chill.institute", AuthToken: "saved-token"}); err != nil {
 		t.Fatalf("Save() error = %v", err)
 	}
 

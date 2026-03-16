@@ -31,13 +31,13 @@ Use `chilly` as the local command-line entrypoint for chill.institute, and prefe
 - Print the login URL without auto-opening a browser:
   `chilly auth login --no-browser`
 - If the browser is on another machine, open this page in a signed-in browser and copy the token:
-  `https://binge.institute/auth/cli-token`
+  `https://chill.institute/auth/cli-token`
 - Store an existing token directly:
   `chilly auth login --token <token>`
 - Verify the current login:
   `chilly whoami --output json`
 
-The current fresh-config default is `https://api.binge.institute`. Existing local configs may already point somewhere else.
+The current fresh-config default is `https://api.chill.institute`. Existing local configs may already point somewhere else.
 
 ## Discovery
 
@@ -68,10 +68,10 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly --profile dev settings show --output json`
 - Run full local diagnostics:
   `chilly doctor --output json`
-- Point to staging:
-  `chilly settings set api-base-url https://api.binge.institute`
+- Point to production:
+  `chilly settings set api-base-url https://api.chill.institute`
 - Preview an API host change without saving it:
-  `chilly settings set api-base-url https://api.binge.institute --dry-run --output json`
+  `chilly settings set api-base-url https://api.chill.institute --dry-run --output json`
 - Search:
   `chilly search --query "dune" --output json`
 - Search one indexer at a time:
