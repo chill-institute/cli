@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for contributing to `chill-institute/chill-institute-cli`.
+Thanks for contributing to `chill-institute-cli`.
 
 ## Setup
 

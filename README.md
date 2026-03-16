@@ -1,4 +1,4 @@
-# chill-institute/chill-institute-cli
+# chill-institute-cli
 
 ![chill.institute cli](https://binge.institute/banner.png)
 
