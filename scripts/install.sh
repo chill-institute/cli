@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-repo="chill-institute/cli"
+repo="chill-institute/chill-institute-cli"
 binary_name="chilly"
 install_dir="${INSTALL_DIR:-/usr/local/bin}"
 requested_version="${1:-${VERSION:-}}"

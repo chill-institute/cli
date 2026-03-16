@@ -1,6 +1,9 @@
 [tools]
 go = "1.25.8"
 
+[env]
+GOWORK = "off"
+
 [tasks.fmt]
 description = "Format Go sources"
 run = "./scripts/format-go.sh"

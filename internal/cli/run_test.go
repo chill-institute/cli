@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chill-institute/cli/internal/buildinfo"
-	"github.com/chill-institute/cli/internal/config"
+	"github.com/chill-institute/chill-institute-cli/internal/buildinfo"
+	"github.com/chill-institute/chill-institute-cli/internal/config"
 )
 
 func TestRunAddTransferDryRunSkipsAuthAndReturnsPreview(t *testing.T) {

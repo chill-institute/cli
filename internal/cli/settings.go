@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/chill-institute/cli/internal/config"
+	"github.com/chill-institute/chill-institute-cli/internal/config"
 	"github.com/spf13/cobra"
 )
 

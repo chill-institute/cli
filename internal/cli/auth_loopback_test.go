@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chill-institute/cli/internal/config"
+	"github.com/chill-institute/chill-institute-cli/internal/config"
 )
 
 func TestAuthLoginBrowserFlowCapturesLoopbackToken(t *testing.T) {

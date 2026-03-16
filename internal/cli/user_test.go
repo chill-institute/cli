@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chill-institute/cli/internal/config"
+	"github.com/chill-institute/chill-institute-cli/internal/config"
 )
 
 func TestUserTransferAddUsesStoredToken(t *testing.T) {

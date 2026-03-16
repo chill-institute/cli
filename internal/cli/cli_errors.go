@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/chill-institute/cli/internal/rpc"
+	"github.com/chill-institute/chill-institute-cli/internal/rpc"
 )
 
 type exitCode int

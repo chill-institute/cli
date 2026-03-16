@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/chill-institute/cli/internal/rpc"
+	"github.com/chill-institute/chill-institute-cli/internal/rpc"
 	"github.com/spf13/cobra"
 )
 

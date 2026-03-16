@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chill-institute/cli/internal/buildinfo"
-	"github.com/chill-institute/cli/internal/update"
+	"github.com/chill-institute/chill-institute-cli/internal/buildinfo"
+	"github.com/chill-institute/chill-institute-cli/internal/update"
 	"github.com/spf13/cobra"
 )
 

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chill-institute/cli/internal/buildinfo"
+	"github.com/chill-institute/chill-institute-cli/internal/buildinfo"
 )
 
 func TestReadLineTrimsInput(t *testing.T) {

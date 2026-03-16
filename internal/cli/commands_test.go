@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chill-institute/cli/internal/config"
+	"github.com/chill-institute/chill-institute-cli/internal/config"
 )
 
 func TestAuthLoginWithTokenSavesConfig(t *testing.T) {

@@ -1,4 +1,4 @@
-# chill-institute/cli
+# chill-institute/chill-institute-cli
 
 ![chill.institute cli](https://binge.institute/banner.png)
 
@@ -12,7 +12,7 @@ chilly version
 ```
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chill-institute/cli/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chill-institute/chill-institute-cli/main/scripts/install.sh | bash
 chilly version
 ```
 
@@ -27,13 +27,13 @@ chilly version
 Use `chilly` to interact with chill.institute from the terminal
 
 Repository:
-https://github.com/chill-institute/cli
+https://github.com/chill-institute/chill-institute-cli
 
 Read and follow this usage skill before operating the CLI:
-https://raw.githubusercontent.com/chill-institute/cli/main/skills/chilly-cli/SKILL.md
+https://raw.githubusercontent.com/chill-institute/chill-institute-cli/main/skills/chilly-cli/SKILL.md
 
 If `chilly` is not already on PATH, install it by following the repo README:
-https://github.com/chill-institute/cli/blob/main/README.md
+https://github.com/chill-institute/chill-institute-cli/blob/main/README.md
 
 After install, run:
 chilly doctor --output json

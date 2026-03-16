@@ -189,7 +189,7 @@ func TestLatestAndByTag(t *testing.T) {
 		payload, err := json.Marshal(Release{
 			TagName: "v1.2.3",
 			Assets: []ReleaseAsset{
-				{Name: "chilly_1.2.3_darwin_arm64.tar.gz", BrowserDownloadURL: "https://github.com/chill-institute/cli/releases/download/v1.2.3/chilly_1.2.3_darwin_arm64.tar.gz"},
+				{Name: "chilly_1.2.3_darwin_arm64.tar.gz", BrowserDownloadURL: "https://github.com/chill-institute/chill-institute-cli/releases/download/v1.2.3/chilly_1.2.3_darwin_arm64.tar.gz"},
 			},
 		})
 		if err != nil {
@@ -220,12 +220,12 @@ func TestDownload(t *testing.T) {
 	t.Parallel()
 
 	client := NewClient(&http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
-		if request.URL.String() != "https://github.com/chill-institute/cli/releases/download/v1.2.3/chilly_1.2.3_darwin_arm64.tar.gz" {
+		if request.URL.String() != "https://github.com/chill-institute/chill-institute-cli/releases/download/v1.2.3/chilly_1.2.3_darwin_arm64.tar.gz" {
 			t.Fatalf("request.URL = %q", request.URL.String())
 		}
 		return binaryResponse([]byte("archive-bytes")), nil
 	})})
-	payload, err := client.Download(context.Background(), "https://github.com/chill-institute/cli/releases/download/v1.2.3/chilly_1.2.3_darwin_arm64.tar.gz")
+	payload, err := client.Download(context.Background(), "https://github.com/chill-institute/chill-institute-cli/releases/download/v1.2.3/chilly_1.2.3_darwin_arm64.tar.gz")
 	if err != nil {
 		t.Fatalf("Download() error = %v", err)
 	}
