@@ -180,7 +180,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Output:          schemaOutput{JSON: true, Human: true},
 		Inputs: appendInputs(
 			schemaInput{Name: "query", Type: "string", Required: true, Description: "search query"},
-			schemaInput{Name: "indexer-id", Type: "string", Description: "optional indexer id"},
+			schemaInput{Name: "indexer-id", Type: "string", Description: "optional indexer id; prefer one indexer at a time for agent workflows"},
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
 	},

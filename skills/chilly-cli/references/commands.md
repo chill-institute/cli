@@ -113,6 +113,8 @@ Dev builds default to a separate `dev` profile path unless `--profile`, `CHILLY_
   `chilly add-transfer --url "magnet:?xt=..." --output json`
 - Get one transfer:
   `chilly get-transfer 42 --output json`
+- Get transfer status and file fields:
+  `chilly get-transfer 42 --fields transfer.status,transfer.statusMessage,transfer.percentDone,transfer.fileId,transfer.fileUrl --output json`
 - Preview add-transfer without executing it:
   `chilly add-transfer --url "magnet:?xt=..." --dry-run --output json`
 - Same operation through the nested command:
@@ -137,6 +139,8 @@ Dev builds default to a separate `dev` profile path unless `--profile`, `CHILLY_
 ## Output Discipline
 
 - For automation, always request `--output json`.
+- Prefer this flow for agent search work: `chilly user indexers --output json`, choose an indexer from its `status` and `tags`, then run one scoped `chilly search --indexer-id <id>` request at a time.
+- After `add-transfer`, prefer `get-transfer` for real hosted transfer state instead of inferring it from the add response alone.
 - Prefer top-level canonical commands when both top-level and `user ...` forms exist.
 - Human-facing notices may appear on `stderr`.
 - Command data is intended to be parsed from `stdout`.

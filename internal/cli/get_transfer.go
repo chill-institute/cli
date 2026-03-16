@@ -15,7 +15,7 @@ func newGetTransferCommand(app *appContext) *cobra.Command {
 		Example: strings.TrimSpace(`
 chilly get-transfer 42
 chilly get-transfer 42 --output json
-chilly get-transfer 42 --fields transfer.status,transfer.fileUrl --output json
+chilly get-transfer 42 --fields transfer.status,transfer.statusMessage,transfer.percentDone,transfer.fileId,transfer.fileUrl --output json
 `),
 		Args: allowDescribeArgs(cobra.ExactArgs(1)),
 		RunE: func(cmd *cobra.Command, args []string) error {

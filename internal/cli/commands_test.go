@@ -975,7 +975,7 @@ func TestUserIndexersPrettyOutputShowsReadableSummary(t *testing.T) {
 		if request.URL.Path != "/v4/chill.v4.UserService/GetIndexers" {
 			t.Fatalf("path = %q", request.URL.Path)
 		}
-		_, _ = writer.Write([]byte(`{"indexers":[{"id":"yts","name":"YTS","enabled":true},{"id":"rarbg","name":"RARBG","enabled":false}]}`))
+		_, _ = writer.Write([]byte(`{"indexers":[{"id":"yts","name":"YTS","enabled":true,"status":"INDEXER_STATUS_HEALTHY"},{"id":"rarbg","name":"RARBG","enabled":false,"status":"INDEXER_STATUS_DOWN"}]}`))
 	}))
 	defer server.Close()
 
@@ -1001,7 +1001,7 @@ func TestUserIndexersPrettyOutputShowsReadableSummary(t *testing.T) {
 	}
 
 	rendered := stdout.String()
-	for _, expected := range []string{"Indexers: 2", "1. YTS [yts]", "Status: enabled", "2. RARBG [rarbg]", "Status: disabled"} {
+	for _, expected := range []string{"Indexers: 2", "1. YTS [yts]", "Enabled: enabled", "Indexer Status: healthy", "2. RARBG [rarbg]", "Enabled: disabled", "Indexer Status: down"} {
 		if !strings.Contains(rendered, expected) {
 			t.Fatalf("pretty output missing %q in %q", expected, rendered)
 		}

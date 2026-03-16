@@ -19,6 +19,7 @@ func newSearchCommand(app *appContext) *cobra.Command {
 		Short: "Search using your saved profile settings",
 		Example: strings.TrimSpace(`
 chilly search --query "dune"
+chilly search --query "dune" --indexer-id yts --output json
 chilly search --query "dune" --fields results.title --output json
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -27,7 +28,7 @@ chilly search --query "dune" --fields results.title --output json
 	}
 
 	command.Flags().StringVar(&query, "query", "", "search query")
-	command.Flags().StringVar(&indexerID, "indexer-id", "", "optional indexer id")
+	command.Flags().StringVar(&indexerID, "indexer-id", "", "optional indexer id; prefer one indexer at a time for agent workflows")
 	command.Flags().StringVar(&fields, "fields", "", "comma-separated field paths to include in the output")
 	return command
 }

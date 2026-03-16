@@ -155,9 +155,9 @@ func renderUserIndexersPretty(value any) (string, bool, error) {
 			name = fmt.Sprintf("Indexer %d", index+1)
 		}
 
-		status := "disabled"
+		enabledStatus := "disabled"
 		if enabled, ok := indexer["enabled"].(bool); ok && enabled {
-			status = "enabled"
+			enabledStatus = "enabled"
 		}
 
 		line := fmt.Sprintf("%d. %s", index+1, name)
@@ -165,13 +165,30 @@ func renderUserIndexersPretty(value any) (string, bool, error) {
 			line = fmt.Sprintf("%s [%s]", line, id)
 		}
 		lines = append(lines, line)
-		lines = append(lines, fmt.Sprintf("   Status: %s", status))
+		lines = append(lines, fmt.Sprintf("   Enabled: %s", enabledStatus))
+		if status := prettyIndexerStatus(firstString(indexer, "status")); status != "" {
+			lines = append(lines, fmt.Sprintf("   Indexer Status: %s", status))
+		}
 	}
 	if len(indexers) > maxPrettyListItems {
 		lines = append(lines, fmt.Sprintf("... %d more indexers omitted. Use --output json for the full payload.", len(indexers)-maxPrettyListItems))
 	}
 
 	return strings.Join(lines, "\n"), true, nil
+}
+
+func prettyIndexerStatus(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+
+	trimmed = strings.TrimPrefix(trimmed, "INDEXER_STATUS_")
+	if trimmed == "" {
+		return ""
+	}
+
+	return strings.ToLower(trimmed)
 }
 
 func renderUserSettingsPretty(value any) (string, bool, error) {

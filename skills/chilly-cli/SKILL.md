@@ -22,6 +22,7 @@ Use `chilly` as the local command-line entrypoint for chill.institute, and prefe
 11. Use `--dry-run` on supported mutating commands when you need to preview a request safely.
 12. Use `--fields` on supported read commands when you only need a stable subset of the JSON response.
 13. Use `completion` when you need shell integration on a human workstation.
+14. Prefer this indexer workflow for agents: `chilly user indexers --output json`, pick a healthy indexer, then run `chilly search --indexer-id <id>` one indexer at a time.
 
 ## Auth
 
@@ -73,8 +74,12 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly settings set api-base-url https://api.binge.institute --dry-run --output json`
 - Search:
   `chilly search --query "dune" --output json`
+- Search one indexer at a time:
+  `chilly search --query "dune" --indexer-id yts --output json`
 - Search with a smaller response:
   `chilly search --query "dune" --fields results.title --output json`
+- Inspect indexers before searching:
+  `chilly user indexers --output json`
 - List top movies:
   `chilly list-top-movies --output json`
 - List only movie titles:
@@ -83,6 +88,8 @@ The current fresh-config default is `https://api.binge.institute`. Existing loca
   `chilly add-transfer --url "magnet:?xt=..." --output json`
 - Read one transfer:
   `chilly get-transfer 42 --output json`
+- Check transfer status and file fields directly:
+  `chilly get-transfer 42 --fields transfer.status,transfer.statusMessage,transfer.percentDone,transfer.fileId,transfer.fileUrl --output json`
 - Preview transfer request without executing it:
   `chilly add-transfer --url "magnet:?xt=..." --dry-run --output json`
 - Preview logout without clearing the saved token:
@@ -115,6 +122,8 @@ Read `references/commands.md` for a fuller command cookbook and current gotchas.
 ## Safety Rules
 
 - Prefer `--output json` for automation.
+- Use `status` and `tags` from `chilly user indexers --output json` to choose the next scoped search.
+- After `add-transfer`, use `get-transfer` to read the hosted transfer status instead of inferring completion locally.
 - Prefer `--fields` when a command supports it and you only need a subset of the payload.
 - Check the active API base URL before mutating anything.
 - Use `doctor` when auth, config path, or profile state looks inconsistent.
