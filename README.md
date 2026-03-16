@@ -16,9 +16,6 @@ curl -fsSL https://raw.githubusercontent.com/chill-institute/chill-institute-cli
 chilly version
 ```
 
-> [!NOTE]
-> `chilly` is currently in beta and uses the production backend at `api.chill.institute`
-
 ## Quickstart
 
 ### Prompt for Agents
