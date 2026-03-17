@@ -2,7 +2,9 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -122,5 +124,103 @@ func TestAuthLoginBrowserFlowCapturesLoopbackToken(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "Open this URL to authenticate:") {
 		t.Fatalf("stderr = %q", stderr.String())
+	}
+}
+
+func TestLoopbackAuthWaitForTokenReturnsServeError(t *testing.T) {
+	t.Parallel()
+
+	flow := &loopbackAuthFlow{tokenCh: make(chan string, 1)}
+	errCh := make(chan error, 1)
+	errCh <- errors.New("boom")
+
+	_, err := flow.waitForToken(context.Background(), errCh)
+	if err == nil || !strings.Contains(err.Error(), "serve oauth callback") {
+		t.Fatalf("waitForToken() error = %v", err)
+	}
+}
+
+func TestLoopbackAuthWaitForTokenTimesOut(t *testing.T) {
+	t.Parallel()
+
+	flow := &loopbackAuthFlow{tokenCh: make(chan string, 1)}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+	defer cancel()
+
+	_, err := flow.waitForToken(ctx, make(chan error))
+	if err == nil || !strings.Contains(err.Error(), "timed out waiting for browser authentication") {
+		t.Fatalf("waitForToken() error = %v", err)
+	}
+}
+
+func TestLoopbackHandleCallbackRejectsWrongMethod(t *testing.T) {
+	t.Parallel()
+
+	flow := &loopbackAuthFlow{
+		baseURL:   "http://127.0.0.1:9999",
+		tokenPath: "/auth/token/test",
+	}
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/auth/callback/test", nil)
+	flow.handleCallback(recorder, request)
+
+	if recorder.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusMethodNotAllowed)
+	}
+	if allow := recorder.Header().Get("Allow"); allow != http.MethodGet {
+		t.Fatalf("Allow = %q, want %q", allow, http.MethodGet)
+	}
+}
+
+func TestLoopbackHandleTokenValidatesRequests(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name       string
+		method     string
+		body       string
+		statusCode int
+	}{
+		{name: "wrong method", method: http.MethodGet, body: "", statusCode: http.StatusMethodNotAllowed},
+		{name: "invalid json", method: http.MethodPost, body: "{", statusCode: http.StatusBadRequest},
+		{name: "missing token", method: http.MethodPost, body: `{}`, statusCode: http.StatusBadRequest},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			flow := &loopbackAuthFlow{tokenCh: make(chan string, 1)}
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(tc.method, "/auth/token/test", strings.NewReader(tc.body))
+
+			flow.handleToken(recorder, request)
+
+			if recorder.Code != tc.statusCode {
+				t.Fatalf("status = %d, want %d", recorder.Code, tc.statusCode)
+			}
+		})
+	}
+}
+
+func TestLoopbackHandleTokenRejectsSecondToken(t *testing.T) {
+	t.Parallel()
+
+	flow := &loopbackAuthFlow{tokenCh: make(chan string, 1)}
+
+	firstRecorder := httptest.NewRecorder()
+	firstRequest := httptest.NewRequest(http.MethodPost, "/auth/token/test", strings.NewReader(`{"auth_token":"token-1"}`))
+	flow.handleToken(firstRecorder, firstRequest)
+	if firstRecorder.Code != http.StatusOK {
+		t.Fatalf("first status = %d, want %d", firstRecorder.Code, http.StatusOK)
+	}
+
+	secondRecorder := httptest.NewRecorder()
+	secondRequest := httptest.NewRequest(http.MethodPost, "/auth/token/test", strings.NewReader(`{"auth_token":"token-2"}`))
+	flow.handleToken(secondRecorder, secondRequest)
+	if secondRecorder.Code != http.StatusConflict {
+		t.Fatalf("second status = %d, want %d", secondRecorder.Code, http.StatusConflict)
 	}
 }

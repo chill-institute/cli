@@ -154,7 +154,7 @@ This keeps the top-level skill stable while letting agents load only the workflo
 - `internal/rpc`: low-level API transport
 - `internal/buildinfo`: version metadata injected at build time
 - `internal/update`: reusable GitHub release lookup and binary replacement logic
-- `scripts/`: shared quality and install helpers used by humans, hooks, and CI
+- `scripts/`: install helpers shipped with the repo
 
 This keeps CLI command glue separate from reusable transport and release modules so future SDK or MCP extraction does not need to unwind command-specific concerns.
 
