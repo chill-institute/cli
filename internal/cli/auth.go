@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,23 +34,26 @@ func newAuthLoginCommand(app *appContext) *cobra.Command {
 	var token string
 	var rawRequest string
 	var skipOpen bool
+	var localBrowser bool
 	var skipVerify bool
 	var dryRun bool
 
 	command := &cobra.Command{
 		Use:   "login",
-		Short: "Sign in through a browser or store a setup token",
+		Short: "Sign in by pasting a setup token from the hosted web flow",
 		Long: strings.TrimSpace(`
-Sign in with the hosted browser flow, or store a setup token directly
-with --token for non-interactive or remote environments. If the browser
-is running on another machine, open https://chill.institute/auth/cli-token
-in a signed-in browser and copy the token into --token.
+Sign in by opening the hosted web token page, copying the setup token,
+and pasting it back into the terminal. Use --token for non-interactive
+or remote environments where you already have the token. Use
+--local-browser only when you explicitly want the localhost
+callback flow with optional browser auto-open.
 `),
 		Example: strings.TrimSpace(`
 chilly auth login
-chilly auth login --no-browser
 chilly auth login --token "token-from-setup"
 printf '{"token":"token-from-setup","skip_verify":true}' | chilly auth login --json @- --dry-run --output json
+chilly auth login --local-browser
+chilly auth login --local-browser --no-browser
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := app.loadConfig()
@@ -56,7 +61,7 @@ printf '{"token":"token-from-setup","skip_verify":true}' | chilly auth login --j
 				return err
 			}
 
-			resolvedToken, resolvedSkipOpen, resolvedSkipVerify, err := resolveAuthLoginInput(app, token, rawRequest, skipOpen, skipVerify)
+			resolvedToken, resolvedSkipOpen, resolvedLocalBrowser, resolvedSkipVerify, err := resolveAuthLoginInput(app, token, rawRequest, skipOpen, localBrowser, skipVerify)
 			if err != nil {
 				return err
 			}
@@ -64,18 +69,24 @@ printf '{"token":"token-from-setup","skip_verify":true}' | chilly auth login --j
 				request := map[string]any{
 					"api_base_url": cfg.APIBaseURL,
 					"skip_verify":  resolvedSkipVerify,
+					"no_browser":   resolvedSkipOpen,
 				}
 				if strings.TrimSpace(resolvedToken) != "" {
 					request["mode"] = "token"
 					request["token_provided"] = true
+				} else if resolvedLocalBrowser {
+					request["mode"] = "local_browser"
 				} else {
-					request["mode"] = "browser"
-					request["no_browser"] = resolvedSkipOpen
+					request["mode"] = "web_token"
 				}
 				return app.writeLocalDryRunPreview("auth login", request)
 			}
 			if resolvedToken == "" {
-				resolvedToken, err = app.loginWithBrowser(context.Background(), cfg, resolvedSkipOpen)
+				if resolvedLocalBrowser {
+					resolvedToken, err = app.loginWithBrowser(context.Background(), cfg, resolvedSkipOpen)
+				} else {
+					resolvedToken, err = app.loginWithWebToken(cfg, resolvedSkipOpen)
+				}
 				if err != nil {
 					return err
 				}
@@ -119,42 +130,52 @@ printf '{"token":"token-from-setup","skip_verify":true}' | chilly auth login --j
 
 	command.Flags().StringVar(&token, "token", "", "setup token to store (non-interactive)")
 	command.Flags().StringVar(&rawRequest, "json", "", "raw JSON request body, or @- to read it from stdin")
-	command.Flags().BoolVar(&skipOpen, "no-browser", false, "print the login URL instead of opening a browser automatically")
+	command.Flags().BoolVar(&skipOpen, "no-browser", false, "with --local-browser, print the login URL instead of opening a browser automatically")
+	command.Flags().BoolVar(&localBrowser, "local-browser", false, "use the localhost callback flow instead of the hosted web token flow")
 	command.Flags().BoolVar(&skipVerify, "skip-verify", false, "skip token verification call")
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "preview the auth action without verifying or saving credentials")
 	return command
 }
 
-func resolveAuthLoginInput(app *appContext, token string, rawRequest string, skipOpen bool, skipVerify bool) (string, bool, bool, error) {
+func resolveAuthLoginInput(app *appContext, token string, rawRequest string, skipOpen bool, localBrowser bool, skipVerify bool) (string, bool, bool, bool, error) {
 	trimmedToken := strings.TrimSpace(token)
 	trimmedRequest := strings.TrimSpace(rawRequest)
 
 	if trimmedRequest == "" {
-		return trimmedToken, skipOpen, skipVerify, nil
+		return trimmedToken, skipOpen, localBrowser, skipVerify, nil
 	}
-	if trimmedToken != "" || skipOpen || skipVerify {
-		return "", false, false, usageError("ambiguous_auth_login_input", "use either flags or --json for auth login input, not both")
+	if trimmedToken != "" || skipOpen || localBrowser || skipVerify {
+		return "", false, false, false, usageError("ambiguous_auth_login_input", "use either flags or --json for auth login input, not both")
 	}
 
 	payload, err := app.decodeJSONObjectFlag(rawRequest, "--json")
 	if err != nil {
-		return "", false, false, err
+		return "", false, false, false, err
 	}
 
 	resolvedSkipOpen := false
 	if value, ok := payload["no_browser"]; ok {
 		typed, ok := value.(bool)
 		if !ok {
-			return "", false, false, usageError("invalid_json_payload", "--json payload field no_browser must be a boolean")
+			return "", false, false, false, usageError("invalid_json_payload", "--json payload field no_browser must be a boolean")
 		}
 		resolvedSkipOpen = typed
+	}
+
+	resolvedLocalBrowser := false
+	if value, ok := payload["local_browser"]; ok {
+		typed, ok := value.(bool)
+		if !ok {
+			return "", false, false, false, usageError("invalid_json_payload", "--json payload field local_browser must be a boolean")
+		}
+		resolvedLocalBrowser = typed
 	}
 
 	resolvedSkipVerify := false
 	if value, ok := payload["skip_verify"]; ok {
 		typed, ok := value.(bool)
 		if !ok {
-			return "", false, false, usageError("invalid_json_payload", "--json payload field skip_verify must be a boolean")
+			return "", false, false, false, usageError("invalid_json_payload", "--json payload field skip_verify must be a boolean")
 		}
 		resolvedSkipVerify = typed
 	}
@@ -163,12 +184,12 @@ func resolveAuthLoginInput(app *appContext, token string, rawRequest string, ski
 	if value, ok := payload["token"]; ok {
 		typed, ok := value.(string)
 		if !ok {
-			return "", false, false, usageError("invalid_json_payload", "--json payload field token must be a string")
+			return "", false, false, false, usageError("invalid_json_payload", "--json payload field token must be a string")
 		}
 		resolvedToken = strings.TrimSpace(typed)
 	}
 
-	return resolvedToken, resolvedSkipOpen, resolvedSkipVerify, nil
+	return resolvedToken, resolvedSkipOpen, resolvedLocalBrowser, resolvedSkipVerify, nil
 }
 
 func (app *appContext) loginWithBrowser(ctx context.Context, cfg config.Config, skipOpen bool) (string, error) {
@@ -212,6 +233,55 @@ func (app *appContext) loginWithBrowser(ctx context.Context, cfg config.Config, 
 		return "", err
 	}
 	return strings.TrimSpace(token), nil
+}
+
+func (app *appContext) loginWithWebToken(cfg config.Config, skipOpen bool) (string, error) {
+	loginURL, err := webAuthTokenURL(cfg.APIBaseURL)
+	if err != nil {
+		return "", err
+	}
+
+	noticeWriter := app.stdout
+	if app.opts.output == outputJSON {
+		noticeWriter = app.stderr
+	}
+	if _, err := fmt.Fprintf(noticeWriter, "1. Open this URL in a signed-in browser:\n%s\n\n2. Copy the setup token.\n3. Paste it below.\n\n", loginURL); err != nil {
+		return "", err
+	}
+
+	if app == nil || app.isInputTerminal == nil || !app.isInputTerminal(app.stdin) {
+		return "", usageError("interactive_auth_requires_terminal", "auth login requires a terminal for token entry; use --token or --json for non-interactive auth")
+	}
+
+	token, err := app.readLine("Paste setup token: ")
+	if err != nil {
+		return "", fmt.Errorf("read setup token: %w", err)
+	}
+	if strings.TrimSpace(token) == "" {
+		return "", usageError("empty_token", "token cannot be empty")
+	}
+	return strings.TrimSpace(token), nil
+}
+
+func webAuthTokenURL(apiBaseURL string) (string, error) {
+	parsed, err := url.Parse(strings.TrimSpace(apiBaseURL))
+	if err != nil {
+		return "", fmt.Errorf("parse api base url: %w", err)
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return "", usageError("invalid_api_base_url", "api-base-url must start with http:// or https://")
+	}
+
+	host := strings.TrimPrefix(parsed.Hostname(), "api.")
+	if port := parsed.Port(); port != "" {
+		host = net.JoinHostPort(host, port)
+	}
+
+	return (&url.URL{
+		Scheme: parsed.Scheme,
+		Host:   host,
+		Path:   "/auth/cli-token",
+	}).String(), nil
 }
 
 func newAuthLogoutCommand(app *appContext) *cobra.Command {

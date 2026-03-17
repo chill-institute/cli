@@ -13,8 +13,9 @@ Use this reference when the task is about authentication, profile selection, or 
 ## Canonical Commands
 
 - Interactive login: `chilly auth login`
-- Manual browser opening: `chilly auth login --no-browser`
-- Existing token: `chilly auth login --token <token>`
+- Non-interactive existing token: `chilly auth login --token <token>`
+- Localhost callback flow: `chilly auth login --local-browser`
+- Localhost callback flow without auto-open: `chilly auth login --local-browser --no-browser`
 - Preview token login from stdin JSON: `printf '{"token":"token-from-setup","skip_verify":true}' | chilly auth login --json @- --dry-run --output json`
 - Logout: `chilly auth logout --output json`
 - Preview logout: `chilly auth logout --dry-run --output json`
@@ -30,4 +31,6 @@ Use this reference when the task is about authentication, profile selection, or 
 
 ## Browser Token Flow
 
-If the browser is on another machine, open [https://chill.institute/auth/cli-token](https://chill.institute/auth/cli-token) in a signed-in browser and copy the token into `chilly auth login --token <token>`.
+`chilly auth login` now defaults to the hosted web token flow: it prints [https://chill.institute/auth/cli-token](https://chill.institute/auth/cli-token), tells the user to copy the setup token, then waits for that token to be pasted back into the terminal.
+
+If the browser is on another machine, open the same page in a signed-in browser and copy the token into `chilly auth login --token <token>`.

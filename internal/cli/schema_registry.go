@@ -87,7 +87,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 	"auth login": {
 		ID:             "auth login",
 		Kind:           "command",
-		Summary:        "Sign in through a browser or store a setup token",
+		Summary:        "Sign in through the hosted web token flow or store a setup token",
 		AuthMode:       string(rpcAuthNone),
 		Mutates:        true,
 		SupportsDryRun: true,
@@ -95,7 +95,8 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Inputs: appendInputs(
 			schemaInput{Name: "token", Type: "string", Description: "setup token to store directly"},
 			schemaInput{Name: "json", Type: "string", Description: "raw JSON request body, or @- to read it from stdin"},
-			schemaInput{Name: "no-browser", Type: "boolean", Description: "print the login URL instead of opening a browser automatically"},
+			schemaInput{Name: "no-browser", Type: "boolean", Description: "with --local-browser, print the localhost callback URL instead of opening a browser automatically"},
+			schemaInput{Name: "local-browser", Type: "boolean", Description: "use the localhost callback flow instead of the hosted web token flow"},
 			schemaInput{Name: "skip-verify", Type: "boolean", Description: "skip token verification call"},
 			schemaInput{Name: "dry-run", Type: "boolean", Description: "preview the auth action without verifying or saving credentials"},
 		),

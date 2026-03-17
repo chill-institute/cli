@@ -39,6 +39,7 @@ type appContext struct {
 	openURL         func(string) error
 	authFlowTimeout time.Duration
 	isTerminal      func(io.Writer) bool
+	isInputTerminal func(io.Reader) bool
 	newTicker       func(time.Duration) progressTicker
 	progressLabel   string
 	progressEvery   time.Duration
@@ -81,6 +82,7 @@ func newAppContext(opts *appOptions) *appContext {
 		openURL:         openBrowser,
 		authFlowTimeout: 2 * time.Minute,
 		isTerminal:      writerIsTerminal,
+		isInputTerminal: readerIsTerminal,
 		newTicker: func(interval time.Duration) progressTicker {
 			return realProgressTicker{ticker: time.NewTicker(interval)}
 		},
@@ -359,6 +361,21 @@ func openBrowser(rawURL string) error {
 func writerIsTerminal(writer io.Writer) bool {
 	file, ok := writer.(*os.File)
 	if !ok {
+		return false
+	}
+	return fileIsTerminal(file)
+}
+
+func readerIsTerminal(reader io.Reader) bool {
+	file, ok := reader.(*os.File)
+	if !ok {
+		return false
+	}
+	return fileIsTerminal(file)
+}
+
+func fileIsTerminal(file *os.File) bool {
+	if file == nil {
 		return false
 	}
 	info, err := file.Stat()

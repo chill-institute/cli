@@ -18,7 +18,82 @@ import (
 	"github.com/chill-institute/chill-institute-cli/internal/config"
 )
 
-func TestAuthLoginBrowserFlowCapturesLoopbackToken(t *testing.T) {
+func TestAuthLoginWebTokenFlowPromptsForTokenAndVerifies(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/v4/chill.v4.UserService/GetUserProfile" {
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+		if got := request.Header.Get("Authorization"); got != "Bearer web-token" {
+			t.Fatalf("Authorization = %q", got)
+		}
+		_, _ = writer.Write([]byte(`{"user_id":"user-123"}`))
+	}))
+	defer server.Close()
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	app := &appContext{
+		opts:            &appOptions{configPath: configPath, apiURL: server.URL, output: outputJSON},
+		stdin:           strings.NewReader("web-token\n"),
+		stdout:          stdout,
+		stderr:          stderr,
+		authFlowTimeout: 2 * time.Second,
+		isInputTerminal: func(io.Reader) bool { return true },
+		openURL: func(string) error {
+			t.Fatal("openURL should not be called for the default web token flow")
+			return nil
+		},
+	}
+
+	command := newAuthLoginCommand(app)
+	command.SetArgs(nil)
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	store, err := config.NewStore(configPath)
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	cfg, err := store.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.AuthToken != "web-token" {
+		t.Fatalf("AuthToken = %q, want %q", cfg.AuthToken, "web-token")
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("output json decode error: %v", err)
+	}
+	if output["status"] != "ok" {
+		t.Fatalf("status = %v", output["status"])
+	}
+	if output["saved"] != true {
+		t.Fatalf("saved = %v", output["saved"])
+	}
+	if !strings.Contains(stderr.String(), "1. Open this URL in a signed-in browser:") {
+		t.Fatalf("stderr = %q", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "2. Copy the setup token.") {
+		t.Fatalf("stderr = %q", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "3. Paste it below.") {
+		t.Fatalf("stderr = %q", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "Paste setup token: ") {
+		t.Fatalf("stderr = %q", stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "/auth/cli-token") {
+		t.Fatalf("stderr = %q", stderr.String())
+	}
+}
+
+func TestAuthLoginLocalBrowserFlowCapturesLoopbackToken(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
@@ -95,7 +170,7 @@ func TestAuthLoginBrowserFlowCapturesLoopbackToken(t *testing.T) {
 	}
 
 	command := newAuthLoginCommand(app)
-	command.SetArgs(nil)
+	command.SetArgs([]string{"--local-browser"})
 	if err := command.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -111,18 +186,53 @@ func TestAuthLoginBrowserFlowCapturesLoopbackToken(t *testing.T) {
 	if cfg.AuthToken != "loopback-token" {
 		t.Fatalf("AuthToken = %q, want %q", cfg.AuthToken, "loopback-token")
 	}
+}
 
-	var output map[string]any
-	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
-		t.Fatalf("output json decode error: %v", err)
+func TestAuthLoginWebTokenFlowRejectsNonInteractiveInput(t *testing.T) {
+	t.Parallel()
+
+	app := &appContext{
+		opts:            &appOptions{output: outputJSON},
+		stdin:           strings.NewReader(""),
+		stdout:          &bytes.Buffer{},
+		stderr:          &bytes.Buffer{},
+		isInputTerminal: func(io.Reader) bool { return false },
 	}
-	if output["status"] != "ok" {
-		t.Fatalf("status = %v", output["status"])
+
+	_, err := app.loginWithWebToken(config.Config{APIBaseURL: "https://api.chill.institute"}, true)
+	if err == nil || !strings.Contains(err.Error(), "requires a terminal for token entry") {
+		t.Fatalf("loginWithWebToken() error = %v", err)
 	}
-	if output["saved"] != true {
-		t.Fatalf("saved = %v", output["saved"])
+}
+
+func TestAuthLoginWebTokenFlowSupportsPromptOnly(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	app := &appContext{
+		opts:            &appOptions{output: outputJSON},
+		stdin:           strings.NewReader("manual-token\n"),
+		stdout:          stdout,
+		stderr:          stderr,
+		isInputTerminal: func(io.Reader) bool { return true },
+		openURL: func(string) error {
+			t.Fatal("openURL should not be called for the default web token flow")
+			return nil
+		},
 	}
-	if !strings.Contains(stderr.String(), "Open this URL to authenticate:") {
+
+	token, err := app.loginWithWebToken(config.Config{APIBaseURL: "https://api.chill.institute"}, false)
+	if err != nil {
+		t.Fatalf("loginWithWebToken() error = %v", err)
+	}
+	if token != "manual-token" {
+		t.Fatalf("token = %q, want %q", token, "manual-token")
+	}
+	if stdout.Len() != 0 {
+		t.Fatalf("stdout = %q, want empty", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "/auth/cli-token") {
 		t.Fatalf("stderr = %q", stderr.String())
 	}
 }

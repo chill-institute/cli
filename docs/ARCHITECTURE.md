@@ -207,25 +207,25 @@ In default pretty mode, the core read commands render small human-oriented summa
 
 ## Browser Auth Flow
 
-Interactive login is CLI-native rather than web-app mediated:
+Interactive login defaults to a terminal-first hosted web token page,
+with the localhost callback flow available only as an explicit
+opt-in:
 
 ```mermaid
 sequenceDiagram
   participant User
   participant CLI
   participant Browser
+  participant App
   participant API
-  participant Putio
 
-  CLI->>CLI: start loopback callback server
-  CLI->>Browser: open /auth/putio/start?success_url=http://127.0.0.1:port/...
-  Browser->>API: GET /auth/putio/start
-  API->>Putio: redirect to provider auth
-  Putio->>API: oauth callback
-  API->>Browser: redirect with #auth_token=...
-  Browser->>CLI: POST auth_token to loopback callback server
+  CLI->>User: print /auth/cli-token
+  Browser->>App: user signs in
+  App->>API: mint CLI setup token
+  App->>User: show token
+  User->>CLI: paste token in terminal
   CLI->>API: verify token via user profile RPC
   CLI->>CLI: persist auth token in config store
 ```
 
-The CLI talks directly to the API for both token verification and all user-scoped RPCs. The browser is only used to complete the put.io OAuth step and hand the resulting token back to the local loopback server.
+The CLI talks directly to the API for both token verification and all user-scoped RPCs. The browser is now only used to obtain a setup token from the hosted app, and the default UX is explicitly a copy/paste token handoff. The localhost callback server remains available behind `auth login --local-browser` for desktop convenience, but it is no longer the default contract.

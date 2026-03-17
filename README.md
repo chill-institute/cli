@@ -37,13 +37,13 @@ https://github.com/chill-institute/chill-institute-cli/blob/main/README.md
 After install, run:
 chilly doctor --output json
 
-If auth is missing and browser login is possible, run:
+If auth is missing, start the hosted web token flow:
 chilly auth login
 
-If browser login is not possible on the CLI machine, ask the user to open this page in a signed-in browser and copy the token:
+The command prints this page, asks the user to copy the setup token, and waits for it to be pasted back:
 https://chill.institute/auth/cli-token
 
-Then use:
+If you already have the token and want a non-interactive path, use:
 chilly auth login --token <token>
 
 After setup, continue with the requested task instead of stopping after install or doctor output

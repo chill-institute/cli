@@ -25,7 +25,7 @@ func TestNewAppContextDefaults(t *testing.T) {
 	if app.stdin != os.Stdin || app.stdout != os.Stdout || app.stderr != os.Stderr {
 		t.Fatal("newAppContext() did not wire stdio defaults")
 	}
-	if app.openURL == nil || app.isTerminal == nil || app.newTicker == nil {
+	if app.openURL == nil || app.isTerminal == nil || app.isInputTerminal == nil || app.newTicker == nil {
 		t.Fatal("newAppContext() left helper hooks nil")
 	}
 
@@ -121,6 +121,32 @@ func TestWriterIsTerminalRejectsNonFileWriters(t *testing.T) {
 	}
 	if writerIsTerminal(failingWriter{}) {
 		t.Fatal("writerIsTerminal(failingWriter) = true, want false")
+	}
+}
+
+func TestReaderIsTerminalRejectsNonFileReaders(t *testing.T) {
+	t.Parallel()
+
+	if readerIsTerminal(strings.NewReader("token")) {
+		t.Fatal("readerIsTerminal(strings.NewReader) = true, want false")
+	}
+}
+
+func TestFileIsTerminalRejectsNilAndRegularFiles(t *testing.T) {
+	t.Parallel()
+
+	if fileIsTerminal(nil) {
+		t.Fatal("fileIsTerminal(nil) = true, want false")
+	}
+
+	file, err := os.CreateTemp(t.TempDir(), "terminal-check")
+	if err != nil {
+		t.Fatalf("CreateTemp() error = %v", err)
+	}
+	t.Cleanup(func() { _ = file.Close() })
+
+	if fileIsTerminal(file) {
+		t.Fatal("fileIsTerminal(tempfile) = true, want false")
 	}
 }
 
