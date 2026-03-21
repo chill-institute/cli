@@ -27,7 +27,7 @@ jobs:
         uses: jdx/mise-action@v3
 
       - name: Cache Go dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cache/go-build
@@ -43,13 +43,13 @@ jobs:
 
       - name: Tag next release
         id: semantic_release
-        uses: cycjimmy/semantic-release-action@v4
+        uses: cycjimmy/semantic-release-action@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run GoReleaser
         if: steps.semantic_release.outputs.new_release_published == 'true'
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           version: v2.14.3
           args: release --clean
@@ -60,7 +60,7 @@ jobs:
 
       - name: Attest release archives
         if: steps.semantic_release.outputs.new_release_published == 'true'
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             dist/chilly_*.tar.gz
