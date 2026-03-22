@@ -30,6 +30,7 @@ Security posture: the agent is not a trusted operator. Prefer commands that vali
 - Use `--fields` when a read command supports it and you only need a stable subset of the payload.
 - Use `--dry-run` on mutating commands when you need a safe preview.
 - Prefer `--json @-` for larger mutating request bodies instead of shell-escaping long inline JSON strings.
+- When reading `user indexers`, treat `status` as a tri-state contract: `healthy`, `degraded`, or `down`.
 - Treat `stderr` as non-contract output. Prompts, progress, recovery hints, and browser-login notices may appear there.
 - Omit `--output json` only when a human explicitly wants the built-in terminal summary.
 - Prefer one narrow skill from the library above over pasting this whole file into a prompt when only one workflow is relevant.

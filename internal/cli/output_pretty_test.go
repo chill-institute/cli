@@ -121,6 +121,12 @@ func TestRenderUserIndexersPretty(t *testing.T) {
 				"enabled": true,
 				"status":  "INDEXER_STATUS_READY",
 			},
+			map[string]any{
+				"id":      "tbp",
+				"name":    "The Pirate Bay",
+				"enabled": true,
+				"status":  "INDEXER_STATUS_DEGRADED",
+			},
 		},
 	})
 	if err != nil {
@@ -129,7 +135,7 @@ func TestRenderUserIndexersPretty(t *testing.T) {
 	if !ok {
 		t.Fatal("renderUserIndexersPretty() ok = false, want true")
 	}
-	for _, fragment := range []string{"Indexers: 1", "1. YTS [yts]", "Enabled: enabled", "Indexer Status: ready"} {
+	for _, fragment := range []string{"Indexers: 2", "1. YTS [yts]", "Enabled: enabled", "Indexer Status: ready", "2. The Pirate Bay [tbp]", "Indexer Status: degraded"} {
 		if !strings.Contains(rendered, fragment) {
 			t.Fatalf("rendered = %q, want fragment %q", rendered, fragment)
 		}
@@ -328,6 +334,9 @@ func TestPrettyHelpers(t *testing.T) {
 
 	if status := prettyIndexerStatus("INDEXER_STATUS_READY"); status != "ready" {
 		t.Fatalf("prettyIndexerStatus() = %q", status)
+	}
+	if status := prettyIndexerStatus("INDEXER_STATUS_DEGRADED"); status != "degraded" {
+		t.Fatalf("prettyIndexerStatus(degraded) = %q", status)
 	}
 	if status := prettyIndexerStatus(""); status != "" {
 		t.Fatalf("prettyIndexerStatus(empty) = %q", status)

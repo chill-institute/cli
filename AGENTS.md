@@ -30,6 +30,7 @@ For command-surface changes, also run:
 - Treat the agent as an untrusted operator. New surfaces should validate opaque IDs and base URLs locally before they reach the network or filesystem.
 - Keep `stdout` for command results and `stderr` for prompts, progress, warnings, and recovery hints.
 - Keep auth requirements, flags, and schema/describe surfaces explicit.
+- Treat indexer health as a tri-state contract: `healthy`, `degraded`, and `down`. Do not collapse partially working providers into binary healthy/down wording in new CLI surfaces or docs.
 - Git hooks remain as tiny executable launchers because Git requires hook files, but their behavior should stay in `mise.toml`
 - If a command surface, auth flow, default, or output contract changes, update the user-facing chilly skill library in [skills/](./skills/) in the same pass.
 

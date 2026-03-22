@@ -15,6 +15,7 @@ Use this reference for read-only workflows against the hosted API.
 - Discover indexers first: `chilly user indexers --fields indexers.id,indexers.name,indexers.tags --output json`
 - Run one scoped search at a time: `chilly search --query "dune" --indexer-id yts --fields results.title --output json`
 - Treat `--indexer-id` as an opaque ID. Inputs containing `/`, `?`, `#`, `%`, or traversal-like `..` are rejected locally.
+- When reading `user indexers`, expect `indexers.status` to be a tri-state contract. `INDEXER_STATUS_DEGRADED` means the provider is partially working and should not be treated as fully down.
 
 ## Common Reads
 
