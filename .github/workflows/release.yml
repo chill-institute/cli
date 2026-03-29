@@ -1,4 +1,4 @@
-name: release
+name: Release
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
       - "v*"
 
 concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: true
+  group: cli-release-main
+  cancel-in-progress: false
 
 jobs:
   release:
