@@ -202,10 +202,12 @@ In default pretty mode, the core read commands render small human-oriented summa
 - `mise run smoke` covers fast local CLI sanity checks
 - `mise run coverage:report` prints package coverage plus the lowest-covered functions
 - `mise run test:integration` is opt-in and uses `CHILLY_TEST_API_URL` plus `CHILLY_TEST_TOKEN` for real hosted API checks
-- CI runs `mise run verify`
-- Pushes to `main` run the release workflow
+- `Verify` runs `mise run verify` on pull requests
+- `Main` runs on pushes to `main`
+- `Main` re-verifies the repo before release work starts
 - semantic-release decides the next version and tag
-- the same workflow runs GoReleaser to publish GitHub release artifacts and update the Homebrew tap
+- `Main` runs GoReleaser to publish GitHub release artifacts and update the Homebrew tap
+- the tag-based `Release` workflow remains available as a fallback publish path
 
 ## Browser Auth Flow
 

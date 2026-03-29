@@ -82,10 +82,9 @@ Normal CLI change flow:
 
 1. Make the change.
 2. Run `mise run verify`
-3. Merge or push to `main`
-4. GitHub Actions runs `semantic-release` on `main` and creates the next `vX.Y.Z` tag from conventional commits.
-5. The same `main` release workflow runs GoReleaser, publishes release archives, creates the GitHub release, and updates the Homebrew tap.
-6. The existing tag-based GoReleaser workflow remains available as a manual fallback for intentionally pushed tags.
+3. Open or update a pull request. GitHub Actions runs `Verify` on pull requests.
+4. Merge to `main`. GitHub Actions runs `Main`, which re-verifies the repo, runs `semantic-release`, creates the next `vX.Y.Z` tag from conventional commits, and then runs GoReleaser to publish release archives, create the GitHub release, and update the Homebrew tap.
+5. The existing tag-based `Release` workflow remains available as a fallback for intentionally pushed tags.
 
 Versioning notes:
 

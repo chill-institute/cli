@@ -1,13 +1,44 @@
-name: release-main
+name: Main
 
 on:
   push:
     branches:
       - main
 
+concurrency:
+  group: main-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  release-main:
-    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]')
+  verify:
+    if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up mise
+        uses: jdx/mise-action@v4
+
+      - name: Cache Go dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/.cache/golangci-lint
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('mise.toml', 'go.sum', '.golangci.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ hashFiles('mise.toml', 'go.sum') }}
+            ${{ runner.os }}-go-
+
+      - name: Verify
+        run: mise run verify
+
+  release:
+    needs: [verify]
+    if: ${{ needs.verify.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -16,7 +47,6 @@ jobs:
       id-token: write
       issues: write
       pull-requests: write
-
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -37,9 +67,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-${{ hashFiles('mise.toml', 'go.sum') }}
             ${{ runner.os }}-go-
-
-      - name: Verify
-        run: mise run verify
 
       - name: Tag next release
         id: semantic_release
