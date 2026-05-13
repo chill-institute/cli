@@ -4,14 +4,24 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+      day: monday
     groups:
-      all-actions:
-        patterns: ["*"]
+      actions-patch-minor:
+        update-types: ["patch", "minor"]
+      actions-major:
+        update-types: ["major"]
+    commit-message:
+      prefix: "ci"
 
   - package-ecosystem: gomod
     directory: "/"
     schedule:
       interval: weekly
+      day: monday
     groups:
-      all-go-deps:
-        patterns: ["*"]
+      gomod-patch-minor:
+        update-types: ["patch", "minor"]
+      gomod-major:
+        update-types: ["major"]
+    commit-message:
+      prefix: "deps"
