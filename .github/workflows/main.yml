@@ -43,6 +43,7 @@ jobs:
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    environment: release
     permissions:
       attestations: write
       contents: write
@@ -58,23 +59,15 @@ jobs:
       - name: Set up mise
         uses: jdx/mise-action@v4
 
-      - name: Cache Go dependencies
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/.cache/golangci-lint
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('mise.toml', 'go.sum', '.golangci.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-go-${{ hashFiles('mise.toml', 'go.sum') }}
-            ${{ runner.os }}-go-
-
       - name: Tag next release
         id: semantic_release
         uses: cycjimmy/semantic-release-action@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
 
       - name: Run GoReleaser
         if: steps.semantic_release.outputs.new_release_published == 'true'
