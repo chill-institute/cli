@@ -4,6 +4,12 @@ go = "1.26.3"
 [env]
 GOWORK = "off"
 
+[settings]
+experimental = true
+
+[hooks]
+postinstall = "mise run hooks"
+
 [tasks.fmt]
 description = "Format Go sources"
 run = """
