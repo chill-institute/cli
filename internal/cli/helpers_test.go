@@ -64,6 +64,14 @@ func TestResolveDownloadFolderRequests(t *testing.T) {
 		t.Fatalf("setRequest = %#v", setRequest)
 	}
 
+	nestedSetRequest, err := resolveDownloadFolderSetRequest(app, `{"settings":{"download":{"folderId":43}}}`)
+	if err != nil {
+		t.Fatalf("resolveDownloadFolderSetRequest(nested) error = %v", err)
+	}
+	if nestedSetRequest.Field != "download.folderId" || nestedSetRequest.Value != "43" {
+		t.Fatalf("nestedSetRequest = %#v", nestedSetRequest)
+	}
+
 	clearRequest, err := resolveDownloadFolderClearRequest(app, `{"settings":{"download":{"folderId":null}}}`)
 	if err != nil {
 		t.Fatalf("resolveDownloadFolderClearRequest() error = %v", err)
@@ -80,6 +88,24 @@ func TestResolveDownloadFolderRequests(t *testing.T) {
 	}
 }
 
+func TestNormalizeUserSettingsJSONObjectRequiresDomainObjects(t *testing.T) {
+	t.Parallel()
+
+	if _, err := normalizeUserSettingsJSONObject(map[string]any{
+		"search":   map[string]any{},
+		"download": map[string]any{},
+	}, true); err == nil {
+		t.Fatal("normalizeUserSettingsJSONObject(missing catalog) error = nil, want required domains error")
+	}
+	if _, err := normalizeUserSettingsJSONObject(map[string]any{
+		"search":   map[string]any{},
+		"catalog":  "MOVIES_SOURCE_YTS",
+		"download": map[string]any{},
+	}, true); err == nil {
+		t.Fatal("normalizeUserSettingsJSONObject(non-object catalog) error = nil, want required domains error")
+	}
+}
+
 func TestDecodeUserSettingsRequestNormalizesLegacyFlatSettings(t *testing.T) {
 	t.Parallel()
 
@@ -90,12 +116,12 @@ func TestDecodeUserSettingsRequestNormalizesLegacyFlatSettings(t *testing.T) {
 		stderr: &strings.Builder{},
 	}
 
-	request, err := decodeUserSettingsRequest(app, `{"sortBy":"SORT_BY_TITLE","downloadFolderId":42,"moviesSource":"MOVIES_SOURCE_YTS"}`)
+	request, err := decodeUserSettingsRequest(app, `{"sortBy":"SORT_BY_TITLE","downloadFolderId":42,"moviesSource":"MOVIES_SOURCE_YTS","tvShowsSource":"TV_SHOWS_SOURCE_HBO_MAX"}`)
 	if err != nil {
 		t.Fatalf("decodeUserSettingsRequest() error = %v", err)
 	}
 	settings := request["settings"].(map[string]any)
-	if settings["sortBy"] != nil || settings["downloadFolderId"] != nil || settings["moviesSource"] != nil {
+	if settings["sortBy"] != nil || settings["downloadFolderId"] != nil || settings["moviesSource"] != nil || settings["tvShowsSource"] != nil {
 		t.Fatalf("legacy settings remained flat = %#v", settings)
 	}
 	if settings["search"].(map[string]any)["sortBy"] != "SORT_BY_TITLE" {
@@ -105,6 +131,9 @@ func TestDecodeUserSettingsRequestNormalizesLegacyFlatSettings(t *testing.T) {
 		t.Fatalf("settings = %#v", settings)
 	}
 	if settings["catalog"].(map[string]any)["moviesSource"] != "MOVIES_SOURCE_YTS" {
+		t.Fatalf("settings = %#v", settings)
+	}
+	if settings["catalog"].(map[string]any)["tvShowsSource"] != "TV_SHOWS_SOURCE_HBO_MAX" {
 		t.Fatalf("settings = %#v", settings)
 	}
 
