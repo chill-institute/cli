@@ -22,7 +22,7 @@ chilly version --output json
 			if err != nil {
 				return err
 			}
-			if app.opts.output != outputJSON {
+			if !wantsJSONOutput(app.opts.output) {
 				if selection != nil {
 					return app.writeAnyWithRenderer(map[string]any{
 						"name":       "chilly",

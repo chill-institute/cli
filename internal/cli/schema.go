@@ -24,6 +24,7 @@ chilly search --describe --output json
 			return app.writeAnyWithRenderer(map[string]any{
 				"commands":   listCommandSchemas(),
 				"procedures": listProcedureSchemas(),
+				"types":      listTypeSchemas(),
 			}, selection, nil)
 		},
 	}
@@ -31,6 +32,7 @@ chilly search --describe --output json
 	command.Flags().StringVar(&fields, "fields", "", "comma-separated field paths to include in the output")
 	command.AddCommand(newSchemaCommandCommand(app))
 	command.AddCommand(newSchemaProcedureCommand(app))
+	command.AddCommand(newSchemaTypeCommand(app))
 	return command
 }
 
@@ -66,6 +68,28 @@ func newSchemaProcedureCommand(app *appContext) *cobra.Command {
 			entry, ok := lookupProcedureSchema(strings.TrimSpace(args[0]))
 			if !ok {
 				return usageError("unknown_procedure_schema", "unknown procedure schema %q", args[0])
+			}
+			selection, err := parseFieldSelection(fields)
+			if err != nil {
+				return err
+			}
+			return app.writeAnyWithRenderer(entry, selection, nil)
+		},
+	}
+	command.Flags().StringVar(&fields, "fields", "", "comma-separated field paths to include in the output")
+	return command
+}
+
+func newSchemaTypeCommand(app *appContext) *cobra.Command {
+	var fields string
+	command := &cobra.Command{
+		Use:   "type <name>",
+		Short: "Show metadata for one output type",
+		Args:  allowDescribeArgs(cobra.ExactArgs(1)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			entry, ok := lookupTypeSchema(strings.TrimSpace(args[0]))
+			if !ok {
+				return usageError("unknown_type_schema", "unknown type schema %q", args[0])
 			}
 			selection, err := parseFieldSelection(fields)
 			if err != nil {

@@ -58,13 +58,16 @@ chilly auth login
 chilly doctor --output json
 chilly whoami --output json
 chilly search --query "dune"
+chilly search --query "dune" --fields results.title,results.release_info.bit_depth --output ndjson
 chilly version --fields version --output json
 chilly add-transfer --url "magnet:?xt=urn:btih:..." --dry-run --output json
 printf '{"url":"magnet:?xt=urn:btih:..."}' | chilly add-transfer --json @- --dry-run --output json
 printf '{"token":"token-from-setup","skip_verify":true}' | chilly auth login --json @- --dry-run --output json
 printf '{"key":"api-base-url","value":"https://api.chill.institute"}' | chilly settings set --json @- --dry-run --output json
 chilly schema command search --fields id,linked_procedure --output json
+chilly schema type chill.v4.ReleaseInfo --fields fields.name,fields.json_name --output json
 chilly self-update --json '{"check":true}' --output json
+mise run contracts:check
 ```
 
 Released binaries use the `default` profile; dev builds default to `dev` so source runs do not reuse production config by accident.

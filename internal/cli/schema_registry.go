@@ -13,8 +13,9 @@ type schemaInput struct {
 }
 
 type schemaOutput struct {
-	JSON  bool `json:"json"`
-	Human bool `json:"human"`
+	JSON  bool   `json:"json"`
+	Human bool   `json:"human"`
+	Type  string `json:"type,omitempty"`
 }
 
 type schemaEntry struct {
@@ -31,11 +32,33 @@ type schemaEntry struct {
 	Output          schemaOutput  `json:"output"`
 }
 
+type schemaField struct {
+	Name        string `json:"name"`
+	JSONName    string `json:"json_name"`
+	Type        string `json:"type"`
+	Repeated    bool   `json:"repeated,omitempty"`
+	Optional    bool   `json:"optional,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+type schemaType struct {
+	ID      string        `json:"id"`
+	Kind    string        `json:"kind"`
+	Summary string        `json:"summary"`
+	Fields  []schemaField `json:"fields"`
+}
+
+const (
+	typeSearchResponse = "chill.v4.SearchResponse"
+	typeSearchResult   = "chill.v4.SearchResult"
+	typeReleaseInfo    = "chill.v4.ReleaseInfo"
+)
+
 var commonCommandInputs = []schemaInput{
 	{Name: "api-url", Type: "string", Description: "override API base URL"},
 	{Name: "config", Type: "string", Description: "config file path"},
 	{Name: "profile", Type: "string", Description: "config profile to use"},
-	{Name: "output", Type: "string", Description: "output mode: pretty|json"},
+	{Name: "output", Type: "string", Description: "output mode: pretty|json|ndjson"},
 	{Name: "describe", Type: "boolean", Description: "print command metadata and exit"},
 }
 
@@ -56,7 +79,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Mutates:         true,
 		SupportsDryRun:  true,
 		LinkedProcedure: procedureUserAddTransfer,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.AddTransferResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "url", Type: "string", Required: true, Description: "magnet or URL to add as transfer"},
 			schemaInput{Name: "json", Type: "string", Description: "raw JSON request body, or @- to read it from stdin"},
@@ -143,7 +166,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetMovies,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetMoviesResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
@@ -155,7 +178,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTVShows,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetTVShowsResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
@@ -167,7 +190,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTVShowDetail,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetTVShowDetailResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "imdb-id", Type: "string", Required: true, Description: "IMDb id such as tt0944947"},
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
@@ -180,7 +203,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTVShowSeason,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetTVShowSeasonResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "imdb-id", Type: "string", Required: true, Description: "IMDb id such as tt0944947"},
 			schemaInput{Name: "season-number", Type: "integer", Required: true, Description: "season number"},
@@ -194,7 +217,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTVShowEpisodeDownload,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetTVShowEpisodeDownloadResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "imdb-id", Type: "string", Required: true, Description: "IMDb id such as tt0944947"},
 			schemaInput{Name: "season-number", Type: "integer", Required: true, Description: "season number"},
@@ -209,7 +232,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTVShowSeasonDownloads,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetTVShowSeasonDownloadsResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "imdb-id", Type: "string", Required: true, Description: "IMDb id such as tt0944947"},
 			schemaInput{Name: "season-number", Type: "integer", Required: true, Description: "season number"},
@@ -251,6 +274,18 @@ var commandSchemaRegistry = map[string]schemaEntry{
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
 	},
+	"schema type": {
+		ID:             "schema type",
+		Kind:           "command",
+		Summary:        "Show metadata for one output type",
+		AuthMode:       string(rpcAuthNone),
+		SupportsFields: true,
+		Output:         schemaOutput{JSON: true, Human: true, Type: "schema.Type"},
+		Inputs: appendInputs(
+			schemaInput{Name: "name", Type: "string", Required: true, Description: "type id such as chill.v4.ReleaseInfo"},
+			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
+		),
+	},
 	"search": {
 		ID:              "search",
 		Kind:            "command",
@@ -258,7 +293,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserSearch,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: typeSearchResponse},
 		Inputs: appendInputs(
 			schemaInput{Name: "query", Type: "string", Required: true, Description: "search query"},
 			schemaInput{Name: "indexer-id", Type: "string", Description: "optional indexer id; prefer one indexer at a time for agent workflows"},
@@ -352,7 +387,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetIndexers,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.UserGetIndexersResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
@@ -364,7 +399,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetDownloadFolder,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetDownloadFolderResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
@@ -377,7 +412,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Mutates:         true,
 		SupportsDryRun:  true,
 		LinkedProcedure: procedureUserSaveUserSettings,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.UserSettings"},
 		Inputs: appendInputs(
 			schemaInput{Name: "id", Type: "integer", Required: true, Description: "folder id"},
 			schemaInput{Name: "json", Type: "string", Description: "raw JSON request body, bare settings object JSON, or @- to read from stdin"},
@@ -392,7 +427,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Mutates:         true,
 		SupportsDryRun:  true,
 		LinkedProcedure: procedureUserSaveUserSettings,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.UserSettings"},
 		Inputs: appendInputs(
 			schemaInput{Name: "json", Type: "string", Description: "raw JSON request body, bare settings object JSON, or @- to read from stdin"},
 			schemaInput{Name: "dry-run", Type: "boolean", Description: "validate input and print the request or patch without executing it"},
@@ -413,7 +448,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetFolder,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetFolderResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "id", Type: "integer", Required: true, Description: "folder id"},
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
@@ -427,7 +462,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetUserProfile,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.UserProfile"},
 		Inputs: appendInputs(
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
@@ -440,7 +475,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserSearch,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: typeSearchResponse},
 		Inputs: appendInputs(
 			schemaInput{Name: "query", Type: "string", Required: true, Description: "search query"},
 			schemaInput{Name: "indexer-id", Type: "string", Description: "optional indexer id"},
@@ -462,7 +497,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetUserSettings,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.UserSettings"},
 		Inputs: appendInputs(
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
@@ -475,7 +510,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Mutates:         true,
 		SupportsDryRun:  true,
 		LinkedProcedure: procedureUserSaveUserSettings,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.UserSettings"},
 		Inputs: append(appendInputs(
 			schemaInput{Name: "json", Type: "string", Description: "raw JSON request body, bare settings object JSON, or @- to read from stdin"},
 			schemaInput{Name: "field", Type: "string", Description: "supported settings field to patch"},
@@ -491,7 +526,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetMovies,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetMoviesResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
@@ -504,7 +539,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTVShows,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetTVShowsResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
@@ -517,7 +552,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTVShowDetail,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetTVShowDetailResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "imdb-id", Type: "string", Required: true, Description: "IMDb id such as tt0944947"},
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
@@ -531,7 +566,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTVShowSeason,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetTVShowSeasonResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "imdb-id", Type: "string", Required: true, Description: "IMDb id such as tt0944947"},
 			schemaInput{Name: "season-number", Type: "integer", Required: true, Description: "season number"},
@@ -546,7 +581,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTVShowEpisodeDownload,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetTVShowEpisodeDownloadResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "imdb-id", Type: "string", Required: true, Description: "IMDb id such as tt0944947"},
 			schemaInput{Name: "season-number", Type: "integer", Required: true, Description: "season number"},
@@ -562,7 +597,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTVShowSeasonDownloads,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetTVShowSeasonDownloadsResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "imdb-id", Type: "string", Required: true, Description: "IMDb id such as tt0944947"},
 			schemaInput{Name: "season-number", Type: "integer", Required: true, Description: "season number"},
@@ -586,7 +621,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		Mutates:         true,
 		SupportsDryRun:  true,
 		LinkedProcedure: procedureUserAddTransfer,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.AddTransferResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "url", Type: "string", Required: true, Description: "magnet or URL"},
 			schemaInput{Name: "json", Type: "string", Description: "raw JSON request body, or @- to read it from stdin"},
@@ -601,7 +636,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetTransfer,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.GetTransferResponse"},
 		Inputs: appendInputs(
 			schemaInput{Name: "id", Type: "integer", Required: true, Description: "transfer id"},
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
@@ -614,7 +649,7 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		AuthMode:        string(rpcAuthUser),
 		SupportsFields:  true,
 		LinkedProcedure: procedureUserGetUserProfile,
-		Output:          schemaOutput{JSON: true, Human: true},
+		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.UserProfile"},
 		Inputs: appendInputs(
 			schemaInput{Name: "fields", Type: "string", Description: "comma-separated field paths to include in the output"},
 		),
@@ -640,7 +675,7 @@ var procedureSchemaRegistry = map[string]schemaEntry{
 		AuthMode:       string(rpcAuthUser),
 		Mutates:        true,
 		SupportsDryRun: true,
-		Output:         schemaOutput{JSON: true},
+		Output:         schemaOutput{JSON: true, Type: "chill.v4.AddTransferResponse"},
 		Inputs: []schemaInput{
 			{Name: "url", Type: "string", Required: true, Description: "magnet or URL to add as transfer"},
 		},
@@ -650,14 +685,14 @@ var procedureSchemaRegistry = map[string]schemaEntry{
 		Kind:     "procedure",
 		Summary:  "List user indexers",
 		AuthMode: string(rpcAuthUser),
-		Output:   schemaOutput{JSON: true},
+		Output:   schemaOutput{JSON: true, Type: "chill.v4.UserGetIndexersResponse"},
 	},
 	procedureUserGetTransfer: {
 		ID:       procedureUserGetTransfer,
 		Kind:     "procedure",
 		Summary:  "Fetch one transfer",
 		AuthMode: string(rpcAuthUser),
-		Output:   schemaOutput{JSON: true},
+		Output:   schemaOutput{JSON: true, Type: "chill.v4.GetTransferResponse"},
 		Inputs: []schemaInput{
 			{Name: "id", Type: "integer", Required: true, Description: "transfer id"},
 		},
@@ -667,14 +702,14 @@ var procedureSchemaRegistry = map[string]schemaEntry{
 		Kind:     "procedure",
 		Summary:  "Fetch the current download folder",
 		AuthMode: string(rpcAuthUser),
-		Output:   schemaOutput{JSON: true},
+		Output:   schemaOutput{JSON: true, Type: "chill.v4.GetDownloadFolderResponse"},
 	},
 	procedureUserGetFolder: {
 		ID:       procedureUserGetFolder,
 		Kind:     "procedure",
 		Summary:  "Fetch one folder and its children",
 		AuthMode: string(rpcAuthUser),
-		Output:   schemaOutput{JSON: true},
+		Output:   schemaOutput{JSON: true, Type: "chill.v4.GetFolderResponse"},
 		Inputs: []schemaInput{
 			{Name: "id", Type: "integer", Required: true, Description: "folder id"},
 		},
@@ -684,21 +719,21 @@ var procedureSchemaRegistry = map[string]schemaEntry{
 		Kind:     "procedure",
 		Summary:  "List movies for the current user",
 		AuthMode: string(rpcAuthUser),
-		Output:   schemaOutput{JSON: true},
+		Output:   schemaOutput{JSON: true, Type: "chill.v4.GetMoviesResponse"},
 	},
 	procedureUserGetTVShows: {
 		ID:       procedureUserGetTVShows,
 		Kind:     "procedure",
 		Summary:  "List TV shows for the current user",
 		AuthMode: string(rpcAuthUser),
-		Output:   schemaOutput{JSON: true},
+		Output:   schemaOutput{JSON: true, Type: "chill.v4.GetTVShowsResponse"},
 	},
 	procedureUserGetTVShowDetail: {
 		ID:       procedureUserGetTVShowDetail,
 		Kind:     "procedure",
 		Summary:  "Fetch TV show detail by IMDb id",
 		AuthMode: string(rpcAuthUser),
-		Output:   schemaOutput{JSON: true},
+		Output:   schemaOutput{JSON: true, Type: "chill.v4.GetTVShowDetailResponse"},
 		Inputs: []schemaInput{
 			{Name: "imdb_id", Type: "string", Required: true, Description: "IMDb id such as tt0944947"},
 		},
@@ -708,7 +743,7 @@ var procedureSchemaRegistry = map[string]schemaEntry{
 		Kind:     "procedure",
 		Summary:  "Fetch one TV show season by IMDb id",
 		AuthMode: string(rpcAuthUser),
-		Output:   schemaOutput{JSON: true},
+		Output:   schemaOutput{JSON: true, Type: "chill.v4.GetTVShowSeasonResponse"},
 		Inputs: []schemaInput{
 			{Name: "imdb_id", Type: "string", Required: true, Description: "IMDb id such as tt0944947"},
 			{Name: "season_number", Type: "integer", Required: true, Description: "season number"},
@@ -719,7 +754,7 @@ var procedureSchemaRegistry = map[string]schemaEntry{
 		Kind:     "procedure",
 		Summary:  "Find one TV episode download by IMDb id",
 		AuthMode: string(rpcAuthUser),
-		Output:   schemaOutput{JSON: true},
+		Output:   schemaOutput{JSON: true, Type: "chill.v4.GetTVShowEpisodeDownloadResponse"},
 		Inputs: []schemaInput{
 			{Name: "imdb_id", Type: "string", Required: true, Description: "IMDb id such as tt0944947"},
 			{Name: "season_number", Type: "integer", Required: true, Description: "season number"},
@@ -731,7 +766,7 @@ var procedureSchemaRegistry = map[string]schemaEntry{
 		Kind:     "procedure",
 		Summary:  "Find season and episode downloads for one TV season by IMDb id",
 		AuthMode: string(rpcAuthUser),
-		Output:   schemaOutput{JSON: true},
+		Output:   schemaOutput{JSON: true, Type: "chill.v4.GetTVShowSeasonDownloadsResponse"},
 		Inputs: []schemaInput{
 			{Name: "imdb_id", Type: "string", Required: true, Description: "IMDb id such as tt0944947"},
 			{Name: "season_number", Type: "integer", Required: true, Description: "season number"},
@@ -742,14 +777,14 @@ var procedureSchemaRegistry = map[string]schemaEntry{
 		Kind:     "procedure",
 		Summary:  "Fetch the authenticated user profile",
 		AuthMode: string(rpcAuthUser),
-		Output:   schemaOutput{JSON: true},
+		Output:   schemaOutput{JSON: true, Type: "chill.v4.UserProfile"},
 	},
 	procedureUserGetUserSettings: {
 		ID:       procedureUserGetUserSettings,
 		Kind:     "procedure",
 		Summary:  "Fetch user settings",
 		AuthMode: string(rpcAuthUser),
-		Output:   schemaOutput{JSON: true},
+		Output:   schemaOutput{JSON: true, Type: "chill.v4.UserSettings"},
 	},
 	procedureUserSaveUserSettings: {
 		ID:             procedureUserSaveUserSettings,
@@ -758,7 +793,7 @@ var procedureSchemaRegistry = map[string]schemaEntry{
 		AuthMode:       string(rpcAuthUser),
 		Mutates:        true,
 		SupportsDryRun: true,
-		Output:         schemaOutput{JSON: true},
+		Output:         schemaOutput{JSON: true, Type: "chill.v4.UserSettings"},
 		Inputs: []schemaInput{
 			{Name: "settings", Type: "object", Required: true, Description: "full user settings object"},
 		},
@@ -768,10 +803,77 @@ var procedureSchemaRegistry = map[string]schemaEntry{
 		Kind:     "procedure",
 		Summary:  "Search using the current user profile settings",
 		AuthMode: string(rpcAuthUser),
-		Output:   schemaOutput{JSON: true},
+		Output:   schemaOutput{JSON: true, Type: typeSearchResponse},
 		Inputs: []schemaInput{
 			{Name: "query", Type: "string", Required: true, Description: "search query"},
 			{Name: "indexer_id", Type: "string", Description: "optional indexer id"},
+		},
+	},
+}
+
+var typeSchemaRegistry = map[string]schemaType{
+	typeReleaseInfo: {
+		ID:      typeReleaseInfo,
+		Kind:    "type",
+		Summary: "Parsed release metadata attached to search results when the API can infer it from torrent names",
+		Fields: []schemaField{
+			{Name: "title", JSONName: "title", Type: "string"},
+			{Name: "year", JSONName: "year", Type: "integer", Optional: true},
+			{Name: "season", JSONName: "season", Type: "integer", Optional: true},
+			{Name: "episode", JSONName: "episode", Type: "integer", Optional: true},
+			{Name: "episode_end", JSONName: "episodeEnd", Type: "integer", Optional: true},
+			{Name: "part", JSONName: "part", Type: "integer", Optional: true},
+			{Name: "resolution", JSONName: "resolution", Type: "string"},
+			{Name: "quality", JSONName: "quality", Type: "string"},
+			{Name: "source", JSONName: "source", Type: "string"},
+			{Name: "codec", JSONName: "codec", Type: "string"},
+			{Name: "hdr", JSONName: "hdr", Type: "string"},
+			{Name: "audio", JSONName: "audio", Type: "string"},
+			{Name: "group", JSONName: "group", Type: "string"},
+			{Name: "container", JSONName: "container", Type: "string"},
+			{Name: "language", JSONName: "language", Type: "string"},
+			{Name: "region", JSONName: "region", Type: "string"},
+			{Name: "size", JSONName: "size", Type: "string"},
+			{Name: "bit_depth", JSONName: "bitDepth", Type: "string"},
+			{Name: "edition", JSONName: "edition", Type: "string"},
+			{Name: "extended", JSONName: "extended", Type: "boolean"},
+			{Name: "hardcoded", JSONName: "hardcoded", Type: "boolean"},
+			{Name: "proper", JSONName: "proper", Type: "boolean"},
+			{Name: "repack", JSONName: "repack", Type: "boolean"},
+			{Name: "remastered", JSONName: "remastered", Type: "boolean"},
+			{Name: "complete", JSONName: "complete", Type: "boolean"},
+			{Name: "three_d", JSONName: "threeD", Type: "boolean"},
+			{Name: "imax", JSONName: "imax", Type: "boolean"},
+			{Name: "unrated", JSONName: "unrated", Type: "boolean"},
+			{Name: "widescreen", JSONName: "widescreen", Type: "boolean"},
+			{Name: "excess", JSONName: "excess", Type: "string"},
+		},
+	},
+	typeSearchResponse: {
+		ID:      typeSearchResponse,
+		Kind:    "type",
+		Summary: "Search response returned by user search procedures",
+		Fields: []schemaField{
+			{Name: "query", JSONName: "query", Type: "string"},
+			{Name: "results", JSONName: "results", Type: typeSearchResult, Repeated: true},
+		},
+	},
+	typeSearchResult: {
+		ID:      typeSearchResult,
+		Kind:    "type",
+		Summary: "One torrent search result",
+		Fields: []schemaField{
+			{Name: "id", JSONName: "id", Type: "string"},
+			{Name: "title", JSONName: "title", Type: "string"},
+			{Name: "indexer", JSONName: "indexer", Type: "string"},
+			{Name: "link", JSONName: "link", Type: "string"},
+			{Name: "imdb_id", JSONName: "imdbId", Type: "string", Optional: true},
+			{Name: "peers", JSONName: "peers", Type: "integer"},
+			{Name: "seeders", JSONName: "seeders", Type: "integer"},
+			{Name: "size", JSONName: "size", Type: "integer"},
+			{Name: "source", JSONName: "source", Type: "string"},
+			{Name: "uploaded_at", JSONName: "uploadedAt", Type: "string"},
+			{Name: "release_info", JSONName: "releaseInfo", Type: typeReleaseInfo, Optional: true},
 		},
 	},
 }
@@ -784,6 +886,17 @@ func listProcedureSchemas() []schemaEntry {
 	return sortedSchemaEntries(procedureSchemaRegistry)
 }
 
+func listTypeSchemas() []schemaType {
+	entries := make([]schemaType, 0, len(typeSchemaRegistry))
+	for _, entry := range typeSchemaRegistry {
+		entries = append(entries, entry)
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].ID < entries[j].ID
+	})
+	return entries
+}
+
 func lookupCommandSchema(id string) (schemaEntry, bool) {
 	entry, ok := commandSchemaRegistry[strings.TrimSpace(id)]
 	return entry, ok
@@ -791,6 +904,11 @@ func lookupCommandSchema(id string) (schemaEntry, bool) {
 
 func lookupProcedureSchema(id string) (schemaEntry, bool) {
 	entry, ok := procedureSchemaRegistry[strings.TrimSpace(id)]
+	return entry, ok
+}
+
+func lookupTypeSchema(id string) (schemaType, bool) {
+	entry, ok := typeSchemaRegistry[strings.TrimSpace(id)]
 	return entry, ok
 }
 

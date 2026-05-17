@@ -111,7 +111,7 @@ func TestAuthLoginLocalBrowserFlowCapturesLoopbackToken(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	app := &appContext{
-		opts:            &appOptions{configPath: configPath, apiURL: server.URL, output: outputJSON},
+		opts:            &appOptions{configPath: configPath, apiURL: server.URL, output: outputNDJSON},
 		stdin:           strings.NewReader(""),
 		stdout:          stdout,
 		stderr:          stderr,
@@ -186,6 +186,12 @@ func TestAuthLoginLocalBrowserFlowCapturesLoopbackToken(t *testing.T) {
 	if cfg.AuthToken != "loopback-token" {
 		t.Fatalf("AuthToken = %q, want %q", cfg.AuthToken, "loopback-token")
 	}
+	if strings.Contains(stdout.String(), "Open this URL") {
+		t.Fatalf("stdout = %q, want machine-readable output only", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "Open this URL to authenticate:") {
+		t.Fatalf("stderr = %q", stderr.String())
+	}
 }
 
 func TestAuthLoginWebTokenFlowRejectsNonInteractiveInput(t *testing.T) {
@@ -211,7 +217,7 @@ func TestAuthLoginWebTokenFlowSupportsPromptOnly(t *testing.T) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	app := &appContext{
-		opts:            &appOptions{output: outputJSON},
+		opts:            &appOptions{output: outputNDJSON},
 		stdin:           strings.NewReader("manual-token\n"),
 		stdout:          stdout,
 		stderr:          stderr,

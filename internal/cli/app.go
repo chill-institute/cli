@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 const (
 	outputPretty = "pretty"
 	outputJSON   = "json"
+	outputNDJSON = "ndjson"
 )
 
 type appOptions struct {
@@ -189,12 +191,15 @@ func (app *appContext) writeSelectedResponseBody(body []byte, selection *fieldSe
 	if err != nil {
 		return wrapInternalError("response_normalize_failed", "normalize response output", err)
 	}
+	if len(normalized) == 0 {
+		return nil
+	}
 	_, err = fmt.Fprintln(app.stdout, string(normalized))
 	return wrapInternalError("stdout_write_failed", "write response output", err)
 }
 
 func (app *appContext) writeSelectedResponseBodyWithRenderer(body []byte, selection *fieldSelection, renderer prettyRenderer) error {
-	if app.opts.output == outputJSON || selection != nil || renderer == nil {
+	if wantsJSONOutput(app.opts.output) || selection != nil || renderer == nil {
 		return app.writeSelectedResponseBody(body, selection)
 	}
 
@@ -333,7 +338,76 @@ func normalizeJSON(raw []byte, mode string, selection *fieldSelection) ([]byte, 
 	if mode == outputJSON {
 		return json.Marshal(value)
 	}
+	if mode == outputNDJSON {
+		return marshalNDJSON(value)
+	}
 	return json.MarshalIndent(value, "", "  ")
+}
+
+func marshalNDJSON(value any) ([]byte, error) {
+	lines := make([][]byte, 0)
+	switch typed := value.(type) {
+	case []any:
+		if len(typed) == 0 {
+			return nil, nil
+		}
+		for _, item := range typed {
+			encoded, err := json.Marshal(item)
+			if err != nil {
+				return nil, err
+			}
+			lines = append(lines, encoded)
+		}
+	case map[string]any:
+		streams, hasArray := ndjsonStreams(typed)
+		if hasArray && len(streams) == 0 {
+			return nil, nil
+		}
+		for _, stream := range streams {
+			encoded, err := json.Marshal(stream)
+			if err != nil {
+				return nil, err
+			}
+			lines = append(lines, encoded)
+		}
+	}
+	if len(lines) == 0 {
+		encoded, err := json.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		lines = append(lines, encoded)
+	}
+	return bytes.Join(lines, []byte("\n")), nil
+}
+
+func ndjsonStreams(value map[string]any) ([]any, bool) {
+	context := make(map[string]any)
+	arrayKeys := make([]string, 0)
+	hasArray := false
+	for key, item := range value {
+		if _, ok := item.([]any); ok {
+			hasArray = true
+			arrayKeys = append(arrayKeys, key)
+			continue
+		}
+		context[key] = item
+	}
+	sort.Strings(arrayKeys)
+
+	streams := make([]any, 0)
+	for _, key := range arrayKeys {
+		items := value[key].([]any)
+		for index, arrayItem := range items {
+			streams = append(streams, map[string]any{
+				"path":    key,
+				"index":   index,
+				"item":    arrayItem,
+				"context": context,
+			})
+		}
+	}
+	return streams, hasArray
 }
 
 func openBrowser(rawURL string) error {

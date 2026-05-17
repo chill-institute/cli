@@ -204,7 +204,7 @@ func (app *appContext) loginWithBrowser(ctx context.Context, cfg config.Config, 
 	}()
 
 	noticeWriter := app.stdout
-	if app.opts.output == outputJSON {
+	if wantsJSONOutput(app.opts.output) {
 		noticeWriter = app.stderr
 	}
 	if _, err := fmt.Fprintf(noticeWriter, "Open this URL to authenticate:\n%s\n\n", flow.loginURL); err != nil {
@@ -242,7 +242,7 @@ func (app *appContext) loginWithWebToken(cfg config.Config, skipOpen bool) (stri
 	}
 
 	noticeWriter := app.stdout
-	if app.opts.output == outputJSON {
+	if wantsJSONOutput(app.opts.output) {
 		noticeWriter = app.stderr
 	}
 	if _, err := fmt.Fprintf(noticeWriter, "1. Open this URL in a signed-in browser:\n%s\n\n2. Copy the setup token.\n3. Paste it below.\n\n", loginURL); err != nil {

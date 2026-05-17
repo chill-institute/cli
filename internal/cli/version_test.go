@@ -44,6 +44,38 @@ func TestVersionCommandOutputsBuildInfo(t *testing.T) {
 	}
 }
 
+func TestVersionCommandOutputsNDJSONBuildInfo(t *testing.T) {
+	restore := currentBuildInfo
+	currentBuildInfo = func() buildinfo.Info {
+		return buildinfo.Info{
+			Version:   "v1.2.3",
+			Commit:    "abc1234",
+			BuildDate: "2026-03-15T00:00:00Z",
+		}
+	}
+	t.Cleanup(func() { currentBuildInfo = restore })
+
+	stdout := &bytes.Buffer{}
+	command := newVersionCommand(&appContext{
+		opts:   &appOptions{output: outputNDJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs(nil)
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v, stdout = %q", err, stdout.String())
+	}
+	if output["version"] != "v1.2.3" || output["commit"] != "abc1234" {
+		t.Fatalf("output = %#v", output)
+	}
+}
+
 func TestVersionCommandOutputsPrettyVersionLine(t *testing.T) {
 	restore := currentBuildInfo
 	currentBuildInfo = func() buildinfo.Info {
