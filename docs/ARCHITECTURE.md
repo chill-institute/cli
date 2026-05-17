@@ -216,7 +216,7 @@ In default pretty mode, the core read commands render small human-oriented summa
 - semantic-release decides the next version and tag
 - `Main` runs GoReleaser to publish GitHub release artifacts and update the Homebrew tap
 - `Main` prepares npm package directories from GoReleaser binaries and publishes `@chill-institute/cli`; the installed binary remains `chilly`
-- npm publishing uses trusted OIDC publishing from the `release` Environment; see [npm Trusted Publishing](./NPM_TRUSTED_PUBLISHING.md)
+- npm publishing uses trusted OIDC publishing from the `release` Environment
 - the tag-based `Release` workflow remains available as a fallback publish path
 
 ## Browser Auth Flow

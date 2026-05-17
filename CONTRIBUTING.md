@@ -86,7 +86,7 @@ Normal CLI change flow:
 4. Merge to `main`. GitHub Actions runs `Main`, which re-verifies the repo, runs `semantic-release`, creates the next `vX.Y.Z` tag from conventional commits, and then runs GoReleaser to publish release archives, create the GitHub release, update the Homebrew tap, and publish npm packages under `@chill-institute/cli`.
 5. The existing tag-based `Release` workflow remains available as a fallback for intentionally pushed tags.
 
-The npm package name is `@chill-institute/cli`; its installed binary remains `chilly`. Configure npm Trusted Publishing before the first publish by following [npm Trusted Publishing](./docs/NPM_TRUSTED_PUBLISHING.md).
+The npm package name is `@chill-institute/cli`; its installed binary remains `chilly`. Configure npm Trusted Publishing for the root package and generated platform packages before the first publish.
 
 Versioning notes:
 
