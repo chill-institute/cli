@@ -109,10 +109,42 @@ jobs:
         if: steps.semantic_release.outputs.new_release_published == 'true'
         run: |
           set -euo pipefail
+
+          publish_package() {
+            local package_dir="$1"
+            local package_name
+            local package_version
+
+            package_name="$(node -p "require('./${package_dir}/package.json').name")"
+            package_version="$(node -p "require('./${package_dir}/package.json').version")"
+
+            if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
+              printf '%s@%s is already published; skipping\n' "$package_name" "$package_version"
+              return 0
+            fi
+
+            for attempt in 1 2 3; do
+              if npm publish --provenance --access public "$package_dir"; then
+                return 0
+              fi
+
+              if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
+                printf '%s@%s is visible after publish failure; continuing\n' "$package_name" "$package_version"
+                return 0
+              fi
+
+              if [ "$attempt" -eq 3 ]; then
+                return 1
+              fi
+
+              sleep "$((attempt * 10))"
+            done
+          }
+
           for package_dir in dist/npm/cli-*; do
-            npm publish --provenance --access public "$package_dir"
+            publish_package "$package_dir"
           done
-          npm publish --provenance --access public dist/npm/cli
+          publish_package dist/npm/cli
 
       - name: Attest release archives
         if: steps.semantic_release.outputs.new_release_published == 'true'
