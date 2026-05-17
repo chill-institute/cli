@@ -12,6 +12,11 @@ chilly version
 ```
 
 ```bash
+npm install -g @chill-institute/cli
+chilly version
+```
+
+```bash
 curl -fsSL https://raw.githubusercontent.com/chill-institute/chill-cli/main/scripts/install.sh | bash
 chilly version
 ```

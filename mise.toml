@@ -139,6 +139,20 @@ go run ./cmd/chilly schema command search --output json >/dev/null
 printf '{"url":"magnet:?xt=urn:btih:test"}' | go run ./cmd/chilly --config "$config" add-transfer --json @- --dry-run --output json >/dev/null
 """
 
+[tasks."npm:prepare"]
+description = "Prepare npm package directories from GoReleaser dist artifacts"
+run = "go run ./scripts/npm-package --version \"${CHILLY_NPM_VERSION:-}\""
+
+[tasks."npm:pack"]
+description = "Dry-run pack generated npm package directories"
+depends = ["npm:prepare"]
+run = """
+for package_dir in dist/npm/cli-* dist/npm/cli; do
+  [ -d "$package_dir" ] || continue
+  npm pack --dry-run "$package_dir" >/dev/null
+done
+"""
+
 [tasks.coverage]
 description = "Run tests with coverage threshold"
 run = """

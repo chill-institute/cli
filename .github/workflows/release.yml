@@ -44,6 +44,23 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
 
+      - name: Prepare npm packages
+        run: go run ./scripts/npm-package --version "${GITHUB_REF_NAME#v}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Publish npm packages
+        run: |
+          set -euo pipefail
+          for package_dir in dist/npm/cli-*; do
+            npm publish --provenance --access public "$package_dir"
+          done
+          npm publish --provenance --access public dist/npm/cli
+
       - name: Attest release archives
         uses: actions/attest-build-provenance@v4
         with:

@@ -83,8 +83,18 @@ Normal CLI change flow:
 1. Make the change.
 2. Run `mise run verify`
 3. Open or update a pull request. GitHub Actions runs `Verify` on pull requests.
-4. Merge to `main`. GitHub Actions runs `Main`, which re-verifies the repo, runs `semantic-release`, creates the next `vX.Y.Z` tag from conventional commits, and then runs GoReleaser to publish release archives, create the GitHub release, and update the Homebrew tap.
+4. Merge to `main`. GitHub Actions runs `Main`, which re-verifies the repo, runs `semantic-release`, creates the next `vX.Y.Z` tag from conventional commits, and then runs GoReleaser to publish release archives, create the GitHub release, update the Homebrew tap, and publish npm packages under `@chill-institute/cli`.
 5. The existing tag-based `Release` workflow remains available as a fallback for intentionally pushed tags.
+
+The npm package name is `@chill-institute/cli`; its installed binary remains `chilly`. Configure npm Trusted Publishing for the root package and each platform package against the GitHub `release` environment before the first publish:
+
+- `@chill-institute/cli`
+- `@chill-institute/cli-darwin-arm64`
+- `@chill-institute/cli-darwin-x64`
+- `@chill-institute/cli-linux-arm64`
+- `@chill-institute/cli-linux-x64`
+- `@chill-institute/cli-win32-arm64`
+- `@chill-institute/cli-win32-x64`
 
 Versioning notes:
 

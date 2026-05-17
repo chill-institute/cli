@@ -33,7 +33,7 @@ Useful reports include issues involving:
 
 - test only against accounts and data you control
 - avoid anything destructive, disruptive, or automated at scale
-- do not target infrastructure outside the published CLI release, Homebrew tap, or documented API flows
+- do not target infrastructure outside the published CLI release, npm packages, Homebrew tap, or documented API flows
 
 ## Supported Versions
 
@@ -46,6 +46,7 @@ Security fixes are applied on a best-effort basis to the latest released CLI ver
 - published archives include `checksums.txt`
 - `scripts/install.sh` verifies archive checksums before installation
 - `chilly self-update` verifies archive checksums before replacing the current executable
+- npm packages install the same GoReleaser-built binaries through the `@chill-institute/cli` launcher
 - GitHub Actions publishes release artifact attestations for released archives
 
 ## Verify A Release

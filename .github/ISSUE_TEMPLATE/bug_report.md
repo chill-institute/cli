@@ -21,7 +21,7 @@ What happened, and what did you expect instead?
 ## Environment
 
 - CLI version: `chilly version --output json`
-- Install method: brew / install.sh / source
+- Install method: npm / brew / install.sh / source
 - OS and architecture:
 
 ## Validation
