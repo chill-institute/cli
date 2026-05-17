@@ -78,6 +78,13 @@ func TestApplyUserSettingsPatchAndCloneJSONObject(t *testing.T) {
 	t.Parallel()
 
 	source := map[string]any{
+		"cardDisplayType": "CARD_DISPLAY_TYPE_COMPACT",
+		"showMovies":      true,
+		"showTvShows":     true,
+		"sortBy":          "SORT_BY_TITLE",
+		"search": map[string]any{
+			"sortBy": "SORT_BY_SEEDERS",
+		},
 		"settings": map[string]any{
 			"nested": "value",
 		},
@@ -98,5 +105,13 @@ func TestApplyUserSettingsPatchAndCloneJSONObject(t *testing.T) {
 	search := patched["search"].(map[string]any)
 	if search["filterNastyResults"] != true {
 		t.Fatalf("patched = %#v", patched)
+	}
+	if search["sortBy"] != "SORT_BY_SEEDERS" {
+		t.Fatalf("patched.search.sortBy = %v, want canonical nested value", search["sortBy"])
+	}
+	for _, obsolete := range []string{"cardDisplayType", "showMovies", "showTvShows", "sortBy"} {
+		if _, ok := patched[obsolete]; ok {
+			t.Fatalf("patched kept obsolete or migrated flat field %q: %#v", obsolete, patched)
+		}
 	}
 }

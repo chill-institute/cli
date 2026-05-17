@@ -156,6 +156,12 @@ var legacyFlatUserSettingsPaths = map[string][]string{
 	"tvShowsSource":               {"catalog", "tvShowsSource"},
 }
 
+var obsoleteFlatUserSettingsFields = []string{
+	"cardDisplayType",
+	"showMovies",
+	"showTvShows",
+}
+
 func normalizeUserSettingsPatch(field string, value string) (userSettingsPatch, error) {
 	spec, ok := userSettingsPatchSpecForField(field)
 	if !ok {
@@ -308,15 +314,35 @@ func setNestedJSONObjectValue(target map[string]any, path []string, value any) {
 	setNestedJSONObjectValue(next, path[1:], value)
 }
 
+func hasNestedJSONObjectValue(target map[string]any, path []string) bool {
+	if len(path) == 0 {
+		return false
+	}
+	if len(path) == 1 {
+		_, ok := target[path[0]]
+		return ok
+	}
+	next, ok := target[path[0]].(map[string]any)
+	if !ok {
+		return false
+	}
+	return hasNestedJSONObjectValue(next, path[1:])
+}
+
 func normalizeLegacyFlatUserSettings(settings map[string]any) map[string]any {
 	cloned := cloneJSONObject(settings)
+	for _, field := range obsoleteFlatUserSettingsFields {
+		delete(cloned, field)
+	}
 	for field, path := range legacyFlatUserSettingsPaths {
 		value, ok := cloned[field]
 		if !ok {
 			continue
 		}
 		delete(cloned, field)
-		setNestedJSONObjectValue(cloned, path, value)
+		if !hasNestedJSONObjectValue(cloned, path) {
+			setNestedJSONObjectValue(cloned, path, value)
+		}
 	}
 	return cloned
 }
