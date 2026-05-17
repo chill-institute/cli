@@ -310,6 +310,31 @@ func TestNormalizeJSONSupportsNDJSONResponseCollections(t *testing.T) {
 	}
 }
 
+func TestNormalizeJSONSortsNDJSONResponseCollectionPaths(t *testing.T) {
+	t.Parallel()
+
+	normalized, err := normalizeJSON([]byte(`{"types":[{"id":"type"}],"commands":[{"id":"command"}],"procedures":[{"id":"procedure"}]}`), outputNDJSON, nil)
+	if err != nil {
+		t.Fatalf("normalizeJSON(ndjson object) error = %v", err)
+	}
+	lines := strings.Split(string(normalized), "\n")
+	if len(lines) != 3 {
+		t.Fatalf("lines = %#v, want 3 lines", lines)
+	}
+
+	paths := make([]string, 0, len(lines))
+	for _, line := range lines {
+		var output map[string]any
+		if err := json.Unmarshal([]byte(line), &output); err != nil {
+			t.Fatalf("json.Unmarshal(line) error = %v; line=%q", err, line)
+		}
+		paths = append(paths, output["path"].(string))
+	}
+	if strings.Join(paths, ",") != "commands,procedures,types" {
+		t.Fatalf("paths = %#v", paths)
+	}
+}
+
 func TestNormalizeJSONSupportsEmptyNDJSONResponseCollections(t *testing.T) {
 	t.Parallel()
 

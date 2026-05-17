@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
@@ -382,21 +383,21 @@ func marshalNDJSON(value any) ([]byte, error) {
 
 func ndjsonStreams(value map[string]any) ([]any, bool) {
 	context := make(map[string]any)
+	arrayKeys := make([]string, 0)
 	hasArray := false
 	for key, item := range value {
 		if _, ok := item.([]any); ok {
 			hasArray = true
+			arrayKeys = append(arrayKeys, key)
 			continue
 		}
 		context[key] = item
 	}
+	sort.Strings(arrayKeys)
 
 	streams := make([]any, 0)
-	for key, item := range value {
-		items, ok := item.([]any)
-		if !ok {
-			continue
-		}
+	for _, key := range arrayKeys {
+		items := value[key].([]any)
 		for index, arrayItem := range items {
 			streams = append(streams, map[string]any{
 				"path":    key,
