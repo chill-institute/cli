@@ -164,7 +164,8 @@ func writeError(app *appContext, err error) {
 }
 
 func wantsJSONOutput(value string) bool {
-	return strings.EqualFold(strings.TrimSpace(value), outputJSON)
+	trimmed := strings.TrimSpace(value)
+	return strings.EqualFold(trimmed, outputJSON) || strings.EqualFold(trimmed, outputNDJSON)
 }
 
 func runCommand(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int {

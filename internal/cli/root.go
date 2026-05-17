@@ -69,8 +69,8 @@ chilly schema command search --output json
 				opts.output = outputJSON
 			}
 			opts.output = strings.ToLower(strings.TrimSpace(opts.output))
-			if opts.output != outputPretty && opts.output != outputJSON {
-				return usageError("invalid_output_mode", "invalid --output %q (expected: pretty|json)", opts.output)
+			if opts.output != outputPretty && opts.output != outputJSON && opts.output != outputNDJSON {
+				return usageError("invalid_output_mode", "invalid --output %q (expected: pretty|json|ndjson)", opts.output)
 			}
 
 			describe, err := cmd.Flags().GetBool("describe")
@@ -94,7 +94,7 @@ chilly schema command search --output json
 	command.PersistentFlags().StringVar(&opts.configPath, "config", "", "config file path")
 	command.PersistentFlags().StringVar(&opts.profile, "profile", "", "config profile to use (default builds use default, dev builds use dev)")
 	command.PersistentFlags().StringVar(&opts.apiURL, "api-url", "", "override API base URL")
-	command.PersistentFlags().StringVar(&opts.output, "output", outputPretty, "output mode: pretty|json")
+	command.PersistentFlags().StringVar(&opts.output, "output", outputPretty, "output mode: pretty|json|ndjson")
 	command.PersistentFlags().Bool("describe", false, "print command metadata and exit")
 
 	command.AddCommand(newAuthCommand(app))

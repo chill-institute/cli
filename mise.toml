@@ -187,6 +187,14 @@ go tool cover -func=coverage.out | sort -k3,3n | sed -n '1,25p'
 description = "Run dependency vulnerability scan"
 run = "go tool govulncheck ./..."
 
+[tasks."contracts:check"]
+description = "Check local schema metadata against a sibling chill-contracts proto checkout"
+run = """
+repo_root="$(git rev-parse --show-toplevel)"
+proto_path="${CHILLY_CONTRACTS_PROTO:-$repo_root/../chill-contracts/proto/chill/v4/api.proto}"
+CHILLY_CONTRACTS_PROTO="$proto_path" CHILLY_REQUIRE_CONTRACTS=1 go test ./internal/cli -run '^TestLocalSchemaMatchesContractsProto$'
+"""
+
 [tasks.hooks]
 description = "Install repo git hooks"
 run = """

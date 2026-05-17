@@ -253,6 +253,51 @@ func TestNormalizeJSONAndWriters(t *testing.T) {
 	}
 }
 
+func TestNormalizeJSONSupportsNDJSONArrays(t *testing.T) {
+	t.Parallel()
+
+	normalized, err := normalizeJSON([]byte(`[{"name":"one"},{"name":"two"}]`), outputNDJSON, nil)
+	if err != nil {
+		t.Fatalf("normalizeJSON(ndjson array) error = %v", err)
+	}
+	lines := strings.Split(string(normalized), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("lines = %#v, want 2 lines", lines)
+	}
+	if lines[0] != `{"name":"one"}` || lines[1] != `{"name":"two"}` {
+		t.Fatalf("ndjson = %q", normalized)
+	}
+}
+
+func TestNormalizeJSONSupportsNDJSONResponseCollections(t *testing.T) {
+	t.Parallel()
+
+	normalized, err := normalizeJSON([]byte(`{"query":"dune","results":[{"title":"Dune"},{"title":"Dune Part Two"}]}`), outputNDJSON, nil)
+	if err != nil {
+		t.Fatalf("normalizeJSON(ndjson object) error = %v", err)
+	}
+	lines := strings.Split(string(normalized), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("lines = %#v, want 2 lines", lines)
+	}
+
+	var first map[string]any
+	if err := json.Unmarshal([]byte(lines[0]), &first); err != nil {
+		t.Fatalf("json.Unmarshal(first) error = %v", err)
+	}
+	if first["path"] != "results" || first["index"] != float64(0) {
+		t.Fatalf("first = %#v", first)
+	}
+	item, ok := first["item"].(map[string]any)
+	if !ok || item["title"] != "Dune" {
+		t.Fatalf("item = %#v", first["item"])
+	}
+	context, ok := first["context"].(map[string]any)
+	if !ok || context["query"] != "dune" {
+		t.Fatalf("context = %#v", first["context"])
+	}
+}
+
 func TestWriteSelectedResponseBodyWithRendererFallbackAndErrors(t *testing.T) {
 	t.Parallel()
 

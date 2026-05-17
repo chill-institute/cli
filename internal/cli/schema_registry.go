@@ -58,7 +58,7 @@ var commonCommandInputs = []schemaInput{
 	{Name: "api-url", Type: "string", Description: "override API base URL"},
 	{Name: "config", Type: "string", Description: "config file path"},
 	{Name: "profile", Type: "string", Description: "config profile to use"},
-	{Name: "output", Type: "string", Description: "output mode: pretty|json"},
+	{Name: "output", Type: "string", Description: "output mode: pretty|json|ndjson"},
 	{Name: "describe", Type: "boolean", Description: "print command metadata and exit"},
 }
 

@@ -21,6 +21,7 @@ import (
 const (
 	outputPretty = "pretty"
 	outputJSON   = "json"
+	outputNDJSON = "ndjson"
 )
 
 type appOptions struct {
@@ -333,7 +334,67 @@ func normalizeJSON(raw []byte, mode string, selection *fieldSelection) ([]byte, 
 	if mode == outputJSON {
 		return json.Marshal(value)
 	}
+	if mode == outputNDJSON {
+		return marshalNDJSON(value)
+	}
 	return json.MarshalIndent(value, "", "  ")
+}
+
+func marshalNDJSON(value any) ([]byte, error) {
+	lines := make([][]byte, 0)
+	switch typed := value.(type) {
+	case []any:
+		for _, item := range typed {
+			encoded, err := json.Marshal(item)
+			if err != nil {
+				return nil, err
+			}
+			lines = append(lines, encoded)
+		}
+	case map[string]any:
+		for _, stream := range ndjsonStreams(typed) {
+			encoded, err := json.Marshal(stream)
+			if err != nil {
+				return nil, err
+			}
+			lines = append(lines, encoded)
+		}
+	}
+	if len(lines) == 0 {
+		encoded, err := json.Marshal(value)
+		if err != nil {
+			return nil, err
+		}
+		lines = append(lines, encoded)
+	}
+	return bytes.Join(lines, []byte("\n")), nil
+}
+
+func ndjsonStreams(value map[string]any) []any {
+	context := make(map[string]any)
+	for key, item := range value {
+		if _, ok := item.([]any); ok {
+			continue
+		}
+		context[key] = item
+	}
+
+	streams := make([]any, 0)
+	for key, item := range value {
+		items, ok := item.([]any)
+		if !ok {
+			continue
+		}
+		for index, arrayItem := range items {
+			streams = append(streams, map[string]any{
+				"path":    key,
+				"index":   index,
+				"item":    arrayItem,
+				"context": context,
+			})
+		}
+	}
+	return streams
 }
 
 func openBrowser(rawURL string) error {
