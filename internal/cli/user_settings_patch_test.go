@@ -7,11 +7,11 @@ import (
 func TestNormalizeUserSettingsPatch(t *testing.T) {
 	t.Parallel()
 
-	patch, err := normalizeUserSettingsPatch("show-movies", "true")
+	patch, err := normalizeUserSettingsPatch("filter-nasty-results", "true")
 	if err != nil {
 		t.Fatalf("normalizeUserSettingsPatch() error = %v", err)
 	}
-	if patch.Field != "showMovies" || patch.Value != true {
+	if patch.Field != "search.filterNastyResults" || patch.Value != true {
 		t.Fatalf("patch = %#v", patch)
 	}
 
@@ -31,13 +31,13 @@ func TestNormalizeUserSettingsPatch(t *testing.T) {
 func TestNormalizePatchFieldNameAndKebabCase(t *testing.T) {
 	t.Parallel()
 
-	if got := normalizePatchFieldName("show-movies"); got != "showMovies" {
+	if got := normalizePatchFieldName("filter-nasty-results"); got != "filterNastyResults" {
 		t.Fatalf("normalizePatchFieldName() = %q", got)
 	}
-	if got := normalizePatchFieldName("showMovies"); got != "showMovies" {
+	if got := normalizePatchFieldName("filterNastyResults"); got != "filterNastyResults" {
 		t.Fatalf("normalizePatchFieldName(camel) = %q", got)
 	}
-	if got := kebabCase("showMovies"); got != "show-movies" {
+	if got := kebabCase("filterNastyResults"); got != "filter-nasty-results" {
 		t.Fatalf("kebabCase() = %q", got)
 	}
 }
@@ -92,10 +92,11 @@ func TestApplyUserSettingsPatchAndCloneJSONObject(t *testing.T) {
 	}
 
 	patched := applyUserSettingsPatch(source, userSettingsPatch{
-		Field: "showMovies",
+		Field: "search.filterNastyResults",
 		Value: true,
 	})
-	if patched["showMovies"] != true {
+	search := patched["search"].(map[string]any)
+	if search["filterNastyResults"] != true {
 		t.Fatalf("patched = %#v", patched)
 	}
 }

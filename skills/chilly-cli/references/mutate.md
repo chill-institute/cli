@@ -17,16 +17,16 @@ Use this reference for side-effecting commands.
 
 ## Hosted Settings Mutations
 
-- Exact request body: `printf '{"settings":{"showMovies":true,"showTvShows":true}}' | chilly user settings set --json @- --dry-run --output json`
-- Bare settings object shorthand: `printf '{"showMovies":true,"showTvShows":true}' | chilly user settings set --json @- --dry-run --output json`
+- Exact full replacement body: `printf '{"settings":{"search":{"filterNastyResults":true},"catalog":{"moviesSource":"MOVIES_SOURCE_YTS"},"download":{"folderId":42}}}' | chilly user settings set --json @- --dry-run --output json`
+- Bare full settings shorthand: `printf '{"search":{"filterNastyResults":true},"catalog":{"moviesSource":"MOVIES_SOURCE_YTS"},"download":{"folderId":42}}' | chilly user settings set --json @- --dry-run --output json`
 - One-field patch: `chilly user settings set sort-by title --dry-run --output json`
 
 ## Download Folder Mutations
 
 - Patch by ID: `chilly user download-folder set 42 --dry-run --output json`
-- Exact request body: `printf '{"downloadFolderId":42}' | chilly user download-folder set --json @- --dry-run --output json`
+- Exact request body: `printf '{"download":{"folderId":42}}' | chilly user download-folder set --json @- --dry-run --output json`
 - Clear by patch: `chilly user download-folder clear --dry-run --output json`
-- Clear by request body: `printf '{"settings":{"downloadFolderId":null}}' | chilly user download-folder clear --json @- --dry-run --output json`
+- Clear by request body: `printf '{"settings":{"download":{"folderId":null}}}' | chilly user download-folder clear --json @- --dry-run --output json`
 
 ## Local Mutations
 

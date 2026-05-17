@@ -721,7 +721,7 @@ func TestSchemaCommandUserSettingsSetReturnsPatchMetadata(t *testing.T) {
 			seenField = true
 		case "value":
 			seenValue = true
-		case "field:showMovies":
+		case "field:search.filterNastyResults":
 			seenPatchFieldSpec = true
 		}
 	}

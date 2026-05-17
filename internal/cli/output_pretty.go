@@ -421,10 +421,27 @@ func renderUserSettingsPretty(value any) (string, bool, error) {
 	sort.Strings(keys)
 
 	lines := []string{bold("User Settings")}
-	for _, key := range keys {
-		lines = append(lines, fmt.Sprintf("%s %s", dim(key+":"), prettyValue(settings[key])))
-	}
+	lines = appendUserSettingsLines(lines, settings, "")
 	return strings.Join(lines, "\n"), true, nil
+}
+
+func appendUserSettingsLines(lines []string, settings map[string]any, indent string) []string {
+	keys := make([]string, 0, len(settings))
+	for key := range settings {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		value := settings[key]
+		if nested, ok := value.(map[string]any); ok {
+			lines = append(lines, fmt.Sprintf("%s%s", indent, dim(key+":")))
+			lines = appendUserSettingsLines(lines, nested, indent+"  ")
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("%s%s %s", indent, dim(key+":"), prettyValue(value)))
+	}
+	return lines
 }
 
 func renderDownloadFolderPretty(value any) (string, bool, error) {

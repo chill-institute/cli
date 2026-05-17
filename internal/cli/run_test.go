@@ -99,7 +99,7 @@ func TestRunUserSettingsSetDryRunSkipsAuthAndReturnsPreview(t *testing.T) {
 	exitCode := Run([]string{
 		"--config", configPath,
 		"user", "settings", "set",
-		"--json", `{"showMovies":true}`,
+		"--json", `{"search":{"filterNastyResults":true},"catalog":{"moviesSource":"MOVIES_SOURCE_YTS"},"download":{"folderId":42}}`,
 		"--dry-run",
 		"--output", "json",
 	}, strings.NewReader(""), stdout, stderr)
@@ -132,8 +132,18 @@ func TestRunUserSettingsSetDryRunSkipsAuthAndReturnsPreview(t *testing.T) {
 	if !ok {
 		t.Fatalf("request.settings = %#v, want object", request["settings"])
 	}
-	if settings["showMovies"] != true {
-		t.Fatalf("request.settings.showMovies = %v, want true", settings["showMovies"])
+	search, ok := settings["search"].(map[string]any)
+	if !ok {
+		t.Fatalf("request.settings.search = %#v, want object", settings["search"])
+	}
+	if search["filterNastyResults"] != true {
+		t.Fatalf("request.settings.search.filterNastyResults = %v, want true", search["filterNastyResults"])
+	}
+	if _, ok := settings["catalog"].(map[string]any); !ok {
+		t.Fatalf("request.settings.catalog = %#v, want object", settings["catalog"])
+	}
+	if _, ok := settings["download"].(map[string]any); !ok {
+		t.Fatalf("request.settings.download = %#v, want object", settings["download"])
 	}
 }
 
@@ -149,7 +159,7 @@ func TestRunUserSettingsSetDryRunAcceptsFullRequestJSONFromStdin(t *testing.T) {
 		"--json", "@-",
 		"--dry-run",
 		"--output", "json",
-	}, strings.NewReader(`{"settings":{"showMovies":true}}`), stdout, stderr)
+	}, strings.NewReader(`{"settings":{"search":{"filterNastyResults":true},"catalog":{"moviesSource":"MOVIES_SOURCE_YTS"},"download":{"folderId":42}}}`), stdout, stderr)
 	if exitCode != int(exitCodeSuccess) {
 		t.Fatalf("exitCode = %d, want %d", exitCode, exitCodeSuccess)
 	}
@@ -169,8 +179,18 @@ func TestRunUserSettingsSetDryRunAcceptsFullRequestJSONFromStdin(t *testing.T) {
 	if !ok {
 		t.Fatalf("request.settings = %#v, want object", request["settings"])
 	}
-	if settings["showMovies"] != true {
-		t.Fatalf("request.settings.showMovies = %v, want true", settings["showMovies"])
+	search, ok := settings["search"].(map[string]any)
+	if !ok {
+		t.Fatalf("request.settings.search = %#v, want object", settings["search"])
+	}
+	if search["filterNastyResults"] != true {
+		t.Fatalf("request.settings.search.filterNastyResults = %v, want true", search["filterNastyResults"])
+	}
+	if _, ok := settings["catalog"].(map[string]any); !ok {
+		t.Fatalf("request.settings.catalog = %#v, want object", settings["catalog"])
+	}
+	if _, ok := settings["download"].(map[string]any); !ok {
+		t.Fatalf("request.settings.download = %#v, want object", settings["download"])
 	}
 }
 
@@ -183,7 +203,7 @@ func TestRunUserSettingsSetPatchDryRunSkipsAuthAndReturnsPreview(t *testing.T) {
 	exitCode := Run([]string{
 		"--config", configPath,
 		"user", "settings", "set",
-		"show-movies", "true",
+		"filter-nasty-results", "true",
 		"--dry-run",
 		"--output", "json",
 	}, strings.NewReader(""), stdout, stderr)
@@ -202,8 +222,8 @@ func TestRunUserSettingsSetPatchDryRunSkipsAuthAndReturnsPreview(t *testing.T) {
 	if !ok {
 		t.Fatalf("request.patch = %#v, want object", output["request"])
 	}
-	if patch["field"] != "showMovies" {
-		t.Fatalf("patch.field = %v, want %q", patch["field"], "showMovies")
+	if patch["field"] != "search.filterNastyResults" {
+		t.Fatalf("patch.field = %v, want %q", patch["field"], "search.filterNastyResults")
 	}
 	if patch["value"] != true {
 		t.Fatalf("patch.value = %v, want true", patch["value"])
@@ -408,12 +428,12 @@ func TestRunUserDownloadFolderSetDryRunAcceptsJSONPayloadFromStdin(t *testing.T)
 	if !ok {
 		t.Fatalf("request = %#v, want object", output["request"])
 	}
-	settings, ok := request["settings"].(map[string]any)
+	patch, ok := request["patch"].(map[string]any)
 	if !ok {
-		t.Fatalf("request.settings = %#v, want object", request["settings"])
+		t.Fatalf("request.patch = %#v, want object", request["patch"])
 	}
-	if settings["downloadFolderId"] != "42" {
-		t.Fatalf("request.settings.downloadFolderId = %v, want %q", settings["downloadFolderId"], "42")
+	if patch["field"] != "download.folderId" || patch["value"] != "42" {
+		t.Fatalf("patch = %#v", patch)
 	}
 }
 
@@ -429,7 +449,7 @@ func TestRunUserDownloadFolderClearDryRunAcceptsJSONPayloadFromStdin(t *testing.
 		"--json", "@-",
 		"--dry-run",
 		"--output", "json",
-	}, strings.NewReader(`{"settings":{"downloadFolderId":null}}`), stdout, stderr)
+	}, strings.NewReader(`{"settings":{"download":{"folderId":null}}}`), stdout, stderr)
 	if exitCode != int(exitCodeSuccess) {
 		t.Fatalf("exitCode = %d, want %d", exitCode, exitCodeSuccess)
 	}
@@ -445,12 +465,12 @@ func TestRunUserDownloadFolderClearDryRunAcceptsJSONPayloadFromStdin(t *testing.
 	if !ok {
 		t.Fatalf("request = %#v, want object", output["request"])
 	}
-	settings, ok := request["settings"].(map[string]any)
+	patch, ok := request["patch"].(map[string]any)
 	if !ok {
-		t.Fatalf("request.settings = %#v, want object", request["settings"])
+		t.Fatalf("request.patch = %#v, want object", request["patch"])
 	}
-	if value, ok := settings["downloadFolderId"]; !ok || value != nil {
-		t.Fatalf("request.settings.downloadFolderId = %#v, want null", settings["downloadFolderId"])
+	if patch["field"] != "download.folderId" || patch["value"] != nil {
+		t.Fatalf("patch = %#v", patch)
 	}
 }
 

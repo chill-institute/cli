@@ -29,7 +29,7 @@ Use this reference for read-only workflows against the hosted API.
 - TV show season: `chilly tv-shows season tt0944947 1 --fields season.name,episodes.name --output json`
 - TV season downloads: `chilly tv-shows season-downloads tt0944947 1 --fields seasonPack.title,episodes.download.title --output json`
 - Transfer details: `chilly get-transfer 42 --fields transfer.status,transfer.percentDone --output json`
-- Hosted user settings: `chilly user settings get --fields showMovies,showTvShows,sortBy --output json`
+- Hosted user settings: `chilly user settings get --fields search.sortBy,catalog.moviesSource,download.folderId --output json`
 - Current download folder: `chilly user download-folder --fields folder.id,folder.name --output json`
 - Folder tree slice: `chilly user folder get 0 --fields parent.name,files.name --output json`
 

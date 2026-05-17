@@ -63,7 +63,7 @@ func TestLoadCurrentUserSettings(t *testing.T) {
 		t.Parallel()
 
 		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-			_, _ = writer.Write([]byte(`{"showMovies":true}`))
+			_, _ = writer.Write([]byte(`{"search":{"filterNastyResults":true}}`))
 		}))
 		defer server.Close()
 
@@ -80,7 +80,8 @@ func TestLoadCurrentUserSettings(t *testing.T) {
 		if err != nil {
 			t.Fatalf("loadCurrentUserSettings() error = %v", err)
 		}
-		if settings["showMovies"] != true {
+		search, ok := settings["search"].(map[string]any)
+		if !ok || search["filterNastyResults"] != true {
 			t.Fatalf("settings = %#v", settings)
 		}
 	})

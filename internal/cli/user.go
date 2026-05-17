@@ -111,10 +111,10 @@ Save user settings in one of two modes:
 
 ` + supportedUserSettingsPatchHelp()),
 		Example: strings.TrimSpace(`
-chilly user settings set show-movies true
+chilly user settings set filter-nasty-results true
 chilly user settings set sort-by title --dry-run --output json
-chilly user settings set --json '{"showMovies":true}'
-printf '{"settings":{"showMovies":true}}' | chilly user settings set --json @- --output json
+chilly user settings set --json '{"search":{"filterNastyResults":true},"catalog":{"moviesSource":"MOVIES_SOURCE_YTS"},"download":{"folderId":42}}'
+printf '{"settings":{"search":{"filterNastyResults":true},"catalog":{"moviesSource":"MOVIES_SOURCE_YTS"},"download":{"folderId":42}}}' | chilly user settings set --json @- --output json
 `),
 		Args: allowDescribeArgs(cobra.MaximumNArgs(2)),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -226,7 +226,7 @@ chilly user download-folder set 42 --dry-run --output json
 		Example: strings.TrimSpace(`
 chilly user download-folder set 42
 chilly user download-folder set 42 --dry-run --output json
-printf '{"downloadFolderId":42}' | chilly user download-folder set --json @- --dry-run --output json
+printf '{"download":{"folderId":42}}' | chilly user download-folder set --json @- --dry-run --output json
 `),
 		Args: allowDescribeArgs(cobra.MaximumNArgs(1)),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -238,10 +238,7 @@ printf '{"downloadFolderId":42}' | chilly user download-folder set --json @- --d
 				if err != nil {
 					return err
 				}
-				if dryRun {
-					return app.writeDryRunPreview("user download-folder set", procedureUserSaveUserSettings, rpc.AuthUser, request)
-				}
-				return runUserRPC(app, procedureUserSaveUserSettings, request)
+				return runUserSettingsPatch(app, "user download-folder set", request, dryRun)
 			}
 			if len(args) != 1 {
 				return usageError("missing_folder_id", "folder id is required")
@@ -251,7 +248,7 @@ printf '{"downloadFolderId":42}' | chilly user download-folder set --json @- --d
 				return err
 			}
 			return runUserSettingsPatch(app, "user download-folder set", userSettingsPatch{
-				Field: "downloadFolderId",
+				Field: "download.folderId",
 				Value: strconv.FormatInt(id, 10),
 			}, dryRun)
 		},
@@ -268,7 +265,7 @@ printf '{"downloadFolderId":42}' | chilly user download-folder set --json @- --d
 		Example: strings.TrimSpace(`
 chilly user download-folder clear
 chilly user download-folder clear --dry-run --output json
-printf '{"settings":{"downloadFolderId":null}}' | chilly user download-folder clear --json @- --dry-run --output json
+printf '{"settings":{"download":{"folderId":null}}}' | chilly user download-folder clear --json @- --dry-run --output json
 `),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if strings.TrimSpace(clearRawRequest) != "" {
@@ -276,13 +273,10 @@ printf '{"settings":{"downloadFolderId":null}}' | chilly user download-folder cl
 				if err != nil {
 					return err
 				}
-				if clearDryRun {
-					return app.writeDryRunPreview("user download-folder clear", procedureUserSaveUserSettings, rpc.AuthUser, request)
-				}
-				return runUserRPC(app, procedureUserSaveUserSettings, request)
+				return runUserSettingsPatch(app, "user download-folder clear", request, clearDryRun)
 			}
 			return runUserSettingsPatch(app, "user download-folder clear", userSettingsPatch{
-				Field: "downloadFolderId",
+				Field: "download.folderId",
 				Value: nil,
 			}, clearDryRun)
 		},
@@ -339,50 +333,103 @@ func decodeUserSettingsRequest(app *appContext, rawSettings string) (map[string]
 	}
 	request := payload
 	if settings, ok := payload["settings"]; ok {
-		if _, ok := settings.(map[string]any); !ok {
+		settingsObject, ok := settings.(map[string]any)
+		if !ok {
 			return nil, usageError("invalid_json_payload", "--json payload field settings must be a JSON object")
 		}
+		normalized, err := normalizeUserSettingsJSONObject(settingsObject, true)
+		if err != nil {
+			return nil, err
+		}
+		request["settings"] = normalized
 	} else {
-		request = map[string]any{"settings": payload}
+		normalized, err := normalizeUserSettingsJSONObject(payload, true)
+		if err != nil {
+			return nil, err
+		}
+		request = map[string]any{"settings": normalized}
 	}
 	return request, nil
 }
 
-func resolveDownloadFolderSetRequest(app *appContext, rawRequest string) (map[string]any, error) {
+func resolveDownloadFolderSetRequest(app *appContext, rawRequest string) (userSettingsPatch, error) {
 	return resolveDownloadFolderRequest(app, rawRequest, false)
 }
 
-func resolveDownloadFolderClearRequest(app *appContext, rawRequest string) (map[string]any, error) {
-	request, err := resolveDownloadFolderRequest(app, rawRequest, true)
+func resolveDownloadFolderClearRequest(app *appContext, rawRequest string) (userSettingsPatch, error) {
+	patch, err := resolveDownloadFolderRequest(app, rawRequest, true)
 	if err != nil {
-		return nil, err
+		return userSettingsPatch{}, err
 	}
-	settings := request["settings"].(map[string]any)
-	if settings["downloadFolderId"] != nil {
-		return nil, usageError("invalid_json_payload", "--json payload for download-folder clear must set downloadFolderId to null")
+	if patch.Value != nil {
+		return userSettingsPatch{}, usageError("invalid_json_payload", "--json payload for download-folder clear must set download.folderId to null")
 	}
-	return request, nil
+	return patch, nil
 }
 
-func resolveDownloadFolderRequest(app *appContext, rawRequest string, allowNull bool) (map[string]any, error) {
-	request, err := decodeUserSettingsRequest(app, rawRequest)
+func resolveDownloadFolderRequest(app *appContext, rawRequest string, allowNull bool) (userSettingsPatch, error) {
+	settings, err := decodeDownloadFolderSettingsObject(app, rawRequest)
 	if err != nil {
-		return nil, err
+		return userSettingsPatch{}, err
 	}
-	settings := request["settings"].(map[string]any)
-	rawValue, ok := settings["downloadFolderId"]
+	rawValue, ok := downloadFolderJSONValue(settings)
 	if !ok {
-		return nil, usageError("invalid_json_payload", "--json payload must include settings.downloadFolderId")
+		return userSettingsPatch{}, usageError("invalid_json_payload", "--json payload must include settings.download.folderId")
 	}
 	normalizedValue, err := normalizeDownloadFolderJSONValue(rawValue, allowNull)
 	if err != nil {
+		return userSettingsPatch{}, err
+	}
+	return userSettingsPatch{
+		Field: "download.folderId",
+		Value: normalizedValue,
+	}, nil
+}
+
+func decodeDownloadFolderSettingsObject(app *appContext, rawRequest string) (map[string]any, error) {
+	payload, err := app.decodeJSONObjectFlag(rawRequest, "--json")
+	if err != nil {
 		return nil, err
 	}
-	return map[string]any{
-		"settings": map[string]any{
-			"downloadFolderId": normalizedValue,
-		},
-	}, nil
+	if settings, ok := payload["settings"]; ok {
+		settingsObject, ok := settings.(map[string]any)
+		if !ok {
+			return nil, usageError("invalid_json_payload", "--json payload field settings must be a JSON object")
+		}
+		return normalizeUserSettingsJSONObject(settingsObject, false)
+	}
+	return normalizeUserSettingsJSONObject(payload, false)
+}
+
+func normalizeUserSettingsJSONObject(settings map[string]any, requireAllDomains bool) (map[string]any, error) {
+	normalized := normalizeLegacyFlatUserSettings(settings)
+	if download, ok := normalized["download"].(map[string]any); ok {
+		if rawFolderID, ok := download["folderId"]; ok {
+			folderID, err := normalizeDownloadFolderJSONValue(rawFolderID, true)
+			if err != nil {
+				return nil, err
+			}
+			download["folderId"] = folderID
+		}
+	}
+	if !requireAllDomains {
+		return normalized, nil
+	}
+	for _, domain := range []string{"search", "catalog", "download"} {
+		if _, ok := normalized[domain].(map[string]any); !ok {
+			return nil, usageError("invalid_json_payload", "--json settings must include object settings.%s", domain)
+		}
+	}
+	return normalized, nil
+}
+
+func downloadFolderJSONValue(settings map[string]any) (any, bool) {
+	if download, ok := settings["download"].(map[string]any); ok {
+		value, found := download["folderId"]
+		return value, found
+	}
+	value, found := settings["downloadFolderId"]
+	return value, found
 }
 
 func normalizeDownloadFolderJSONValue(value any, allowNull bool) (any, error) {

@@ -60,15 +60,15 @@ func TestResolveDownloadFolderRequests(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolveDownloadFolderSetRequest() error = %v", err)
 	}
-	if setRequest["settings"].(map[string]any)["downloadFolderId"] != "42" {
+	if setRequest.Field != "download.folderId" || setRequest.Value != "42" {
 		t.Fatalf("setRequest = %#v", setRequest)
 	}
 
-	clearRequest, err := resolveDownloadFolderClearRequest(app, `{"settings":{"downloadFolderId":null}}`)
+	clearRequest, err := resolveDownloadFolderClearRequest(app, `{"settings":{"download":{"folderId":null}}}`)
 	if err != nil {
 		t.Fatalf("resolveDownloadFolderClearRequest() error = %v", err)
 	}
-	if value := clearRequest["settings"].(map[string]any)["downloadFolderId"]; value != nil {
+	if clearRequest.Field != "download.folderId" || clearRequest.Value != nil {
 		t.Fatalf("clearRequest = %#v", clearRequest)
 	}
 
@@ -77,6 +77,48 @@ func TestResolveDownloadFolderRequests(t *testing.T) {
 	}
 	if _, err := resolveDownloadFolderClearRequest(app, `{"settings":{"downloadFolderId":42}}`); err == nil {
 		t.Fatal("resolveDownloadFolderClearRequest() error = nil, want null requirement error")
+	}
+}
+
+func TestDecodeUserSettingsRequestNormalizesLegacyFlatSettings(t *testing.T) {
+	t.Parallel()
+
+	app := &appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: &strings.Builder{},
+		stderr: &strings.Builder{},
+	}
+
+	request, err := decodeUserSettingsRequest(app, `{"sortBy":"SORT_BY_TITLE","downloadFolderId":42,"moviesSource":"MOVIES_SOURCE_YTS"}`)
+	if err != nil {
+		t.Fatalf("decodeUserSettingsRequest() error = %v", err)
+	}
+	settings := request["settings"].(map[string]any)
+	if settings["sortBy"] != nil || settings["downloadFolderId"] != nil || settings["moviesSource"] != nil {
+		t.Fatalf("legacy settings remained flat = %#v", settings)
+	}
+	if settings["search"].(map[string]any)["sortBy"] != "SORT_BY_TITLE" {
+		t.Fatalf("settings = %#v", settings)
+	}
+	if settings["download"].(map[string]any)["folderId"] != "42" {
+		t.Fatalf("settings = %#v", settings)
+	}
+	if settings["catalog"].(map[string]any)["moviesSource"] != "MOVIES_SOURCE_YTS" {
+		t.Fatalf("settings = %#v", settings)
+	}
+
+	wrapped, err := decodeUserSettingsRequest(app, `{"settings":{"filterNastyResults":true,"moviesSource":"MOVIES_SOURCE_YTS","downloadFolderId":42}}`)
+	if err != nil {
+		t.Fatalf("decodeUserSettingsRequest(wrapped) error = %v", err)
+	}
+	wrappedSettings := wrapped["settings"].(map[string]any)
+	if wrappedSettings["search"].(map[string]any)["filterNastyResults"] != true {
+		t.Fatalf("wrappedSettings = %#v", wrappedSettings)
+	}
+
+	if _, err := decodeUserSettingsRequest(app, `{"settings":{"filterNastyResults":true}}`); err == nil {
+		t.Fatal("decodeUserSettingsRequest(partial) error = nil, want required domains error")
 	}
 }
 

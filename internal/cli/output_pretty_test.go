@@ -339,6 +339,32 @@ func TestRenderUserSettingsPretty(t *testing.T) {
 	}
 }
 
+func TestRenderUserSettingsPrettyNestedDomains(t *testing.T) {
+	t.Parallel()
+
+	rendered, ok, err := renderUserSettingsPretty(map[string]any{
+		"search": map[string]any{
+			"sortBy":             "SORT_BY_SEEDERS",
+			"filterNastyResults": true,
+		},
+		"download": map[string]any{
+			"folderId": "42",
+		},
+	})
+	if err != nil {
+		t.Fatalf("renderUserSettingsPretty() error = %v", err)
+	}
+	if !ok {
+		t.Fatal("renderUserSettingsPretty() ok = false, want true")
+	}
+	stripped := stripANSI(rendered)
+	for _, fragment := range []string{"User Settings", "download:", "folderId: 42", "search:", "filterNastyResults: true", "sortBy: SORT_BY_SEEDERS"} {
+		if !strings.Contains(stripped, fragment) {
+			t.Fatalf("rendered = %q, want fragment %q", rendered, fragment)
+		}
+	}
+}
+
 func TestRenderDownloadFolderPretty(t *testing.T) {
 	t.Parallel()
 

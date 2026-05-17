@@ -1329,7 +1329,7 @@ func TestUserSettingsGetFieldsFiltersResponse(t *testing.T) {
 		if request.URL.Path != "/v4/chill.v4.UserService/GetUserSettings" {
 			t.Fatalf("path = %q", request.URL.Path)
 		}
-		_, _ = writer.Write([]byte(`{"showMovies":true,"sortBy":"seeders","sortDirection":"desc"}`))
+		_, _ = writer.Write([]byte(`{"search":{"filterNastyResults":true,"sortBy":"seeders","sortDirection":"desc"}}`))
 	}))
 	defer server.Close()
 
@@ -1349,7 +1349,7 @@ func TestUserSettingsGetFieldsFiltersResponse(t *testing.T) {
 		stdout: stdout,
 		stderr: &bytes.Buffer{},
 	})
-	command.SetArgs([]string{"settings", "get", "--fields", "showMovies,sortBy"})
+	command.SetArgs([]string{"settings", "get", "--fields", "search.filterNastyResults,search.sortBy"})
 	if err := command.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -1358,10 +1358,14 @@ func TestUserSettingsGetFieldsFiltersResponse(t *testing.T) {
 	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
 		t.Fatalf("output json decode error: %v", err)
 	}
-	if output["showMovies"] != true || output["sortBy"] != "seeders" {
+	search, ok := output["search"].(map[string]any)
+	if !ok {
+		t.Fatalf("output.search = %#v, want object", output["search"])
+	}
+	if search["filterNastyResults"] != true || search["sortBy"] != "seeders" {
 		t.Fatalf("output = %#v", output)
 	}
-	if _, ok := output["sortDirection"]; ok {
+	if _, ok := search["sortDirection"]; ok {
 		t.Fatalf("unexpected sortDirection in %#v", output)
 	}
 }
@@ -1373,7 +1377,7 @@ func TestUserSettingsGetPrettyOutputShowsReadableSummary(t *testing.T) {
 		if request.URL.Path != "/v4/chill.v4.UserService/GetUserSettings" {
 			t.Fatalf("path = %q", request.URL.Path)
 		}
-		_, _ = writer.Write([]byte(`{"showMovies":true,"sortBy":"SORT_BY_SEEDERS","sortDirection":"SORT_DIRECTION_DESC","disabledIndexerIds":["animetosho"]}`))
+		_, _ = writer.Write([]byte(`{"search":{"filterNastyResults":true,"sortBy":"SORT_BY_SEEDERS","sortDirection":"SORT_DIRECTION_DESC","disabledIndexerIds":["animetosho"]}}`))
 	}))
 	defer server.Close()
 
@@ -1399,7 +1403,7 @@ func TestUserSettingsGetPrettyOutputShowsReadableSummary(t *testing.T) {
 	}
 
 	rendered := stripANSI(stdout.String())
-	for _, expected := range []string{"User Settings", "showMovies: true", "sortBy: SORT_BY_SEEDERS", "disabledIndexerIds: animetosho"} {
+	for _, expected := range []string{"User Settings", "search:", "filterNastyResults: true", "sortBy: SORT_BY_SEEDERS", "disabledIndexerIds: animetosho"} {
 		if !strings.Contains(rendered, expected) {
 			t.Fatalf("pretty output missing %q in %q", expected, rendered)
 		}
@@ -1590,7 +1594,7 @@ func TestUserDownloadFolderSetDryRunReturnsPatchPreview(t *testing.T) {
 	if !ok {
 		t.Fatalf("patch = %#v", request["patch"])
 	}
-	if patch["field"] != "downloadFolderId" || patch["value"] != "42" {
+	if patch["field"] != "download.folderId" || patch["value"] != "42" {
 		t.Fatalf("patch = %#v", patch)
 	}
 }
@@ -1709,7 +1713,7 @@ func TestUserDownloadFolderClearDryRunReturnsPatchPreview(t *testing.T) {
 	if !ok {
 		t.Fatalf("patch = %#v", request["patch"])
 	}
-	if patch["field"] != "downloadFolderId" {
+	if patch["field"] != "download.folderId" {
 		t.Fatalf("patch = %#v", patch)
 	}
 	if value, ok := patch["value"]; !ok || value != nil {
@@ -1725,7 +1729,7 @@ func TestUserSettingsSetPatchMergesWithCurrentSettings(t *testing.T) {
 		requestCount++
 		switch request.URL.Path {
 		case "/v4/chill.v4.UserService/GetUserSettings":
-			_, _ = writer.Write([]byte(`{"showMovies":false,"sortBy":"SORT_BY_SEEDERS","sortDirection":"SORT_DIRECTION_DESC"}`))
+			_, _ = writer.Write([]byte(`{"search":{"filterNastyResults":false,"sortBy":"SORT_BY_SEEDERS","sortDirection":"SORT_DIRECTION_DESC"}}`))
 		case "/v4/chill.v4.UserService/SaveUserSettings":
 			var payload map[string]any
 			if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
@@ -1735,16 +1739,20 @@ func TestUserSettingsSetPatchMergesWithCurrentSettings(t *testing.T) {
 			if !ok {
 				t.Fatalf("settings = %#v", payload["settings"])
 			}
-			if settings["showMovies"] != true {
-				t.Fatalf("showMovies = %v, want true", settings["showMovies"])
+			search, ok := settings["search"].(map[string]any)
+			if !ok {
+				t.Fatalf("search = %#v", settings["search"])
 			}
-			if settings["sortBy"] != "SORT_BY_SEEDERS" {
-				t.Fatalf("sortBy = %v, want %q", settings["sortBy"], "SORT_BY_SEEDERS")
+			if search["filterNastyResults"] != true {
+				t.Fatalf("filterNastyResults = %v, want true", search["filterNastyResults"])
 			}
-			if settings["sortDirection"] != "SORT_DIRECTION_DESC" {
-				t.Fatalf("sortDirection = %v, want %q", settings["sortDirection"], "SORT_DIRECTION_DESC")
+			if search["sortBy"] != "SORT_BY_SEEDERS" {
+				t.Fatalf("sortBy = %v, want %q", search["sortBy"], "SORT_BY_SEEDERS")
 			}
-			_, _ = writer.Write([]byte(`{"showMovies":true,"sortBy":"SORT_BY_SEEDERS","sortDirection":"SORT_DIRECTION_DESC"}`))
+			if search["sortDirection"] != "SORT_DIRECTION_DESC" {
+				t.Fatalf("sortDirection = %v, want %q", search["sortDirection"], "SORT_DIRECTION_DESC")
+			}
+			_, _ = writer.Write([]byte(`{"search":{"filterNastyResults":true,"sortBy":"SORT_BY_SEEDERS","sortDirection":"SORT_DIRECTION_DESC"}}`))
 		default:
 			t.Fatalf("path = %q", request.URL.Path)
 		}
@@ -1767,7 +1775,7 @@ func TestUserSettingsSetPatchMergesWithCurrentSettings(t *testing.T) {
 		stdout: stdout,
 		stderr: &bytes.Buffer{},
 	})
-	command.SetArgs([]string{"settings", "set", "show-movies", "true"})
+	command.SetArgs([]string{"settings", "set", "filter-nasty-results", "true"})
 	if err := command.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -1779,7 +1787,8 @@ func TestUserSettingsSetPatchMergesWithCurrentSettings(t *testing.T) {
 	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
 		t.Fatalf("output json decode error: %v", err)
 	}
-	if output["showMovies"] != true {
+	search, ok := output["search"].(map[string]any)
+	if !ok || search["filterNastyResults"] != true {
 		t.Fatalf("output = %#v", output)
 	}
 }
@@ -1812,8 +1821,8 @@ func TestUserSettingsSetPatchDryRunDoesNotCallAPI(t *testing.T) {
 	if !ok {
 		t.Fatalf("patch = %#v", request["patch"])
 	}
-	if patch["field"] != "sortBy" {
-		t.Fatalf("patch.field = %v, want %q", patch["field"], "sortBy")
+	if patch["field"] != "search.sortBy" {
+		t.Fatalf("patch.field = %v, want %q", patch["field"], "search.sortBy")
 	}
 	if patch["value"] != "SORT_BY_TITLE" {
 		t.Fatalf("patch.value = %v, want %q", patch["value"], "SORT_BY_TITLE")
@@ -1829,7 +1838,7 @@ func TestUserSettingsSetRejectsMixedJSONAndPatchModes(t *testing.T) {
 		stdout: &bytes.Buffer{},
 		stderr: &bytes.Buffer{},
 	})
-	command.SetArgs([]string{"settings", "set", "show-movies", "true", "--json", `{"showMovies":true}`})
+	command.SetArgs([]string{"settings", "set", "filter-nasty-results", "true", "--json", `{"search":{"filterNastyResults":true}}`})
 	err := command.Execute()
 	if err == nil {
 		t.Fatal("expected error")
