@@ -118,6 +118,7 @@ The CLI keeps a local metadata registry for:
 
 - public command schemas
 - backend procedure schemas linked from those commands
+- selected output type schemas with protobuf field names and protobuf JSON names
 - raw JSON request-body entrypoints for agent-facing mutating commands
 - dry-run eligibility for mutating surfaces
 - field-selection eligibility for read surfaces and schema views
@@ -187,6 +188,8 @@ For supported mutating commands, `--dry-run` validates local input and writes a 
 - one-field patch mode that fetches current settings, merges a validated patch, and saves the full object back through the existing RPC
 
 For supported read commands, `--fields` applies a client-side field mask to the JSON response before rendering it to `stdout`. The main agent-facing read surfaces now include `search`, `whoami`, `movies`, `tv-shows`, `tv-shows detail`, `tv-shows season`, `tv-shows episode-download`, `tv-shows season-downloads`, `doctor`, `get-transfer`, `user settings get`, `user profile`, `user search`, `user movies`, `user tv-shows`, `user transfer get`, `user indexers`, `user download-folder`, `user folder get`, `settings path`, `settings show`, `settings get`, `version`, `schema`, `schema command`, and `schema procedure`
+
+Schema type metadata is available through `schema type`. Field masks accept exact JSON field names and protobuf snake_case aliases, so `results.release_info.bit_depth` selects the JSON field `results.releaseInfo.bitDepth`.
 
 Search hardens opaque `--indexer-id` input before it reaches the API. It rejects control characters, traversal-like segments, percent-encoded strings, and embedded path/query/fragment characters so agent hallucinations fail locally instead of leaking into remote requests. The low-level RPC client applies the same class of checks to procedure names before building `/v4/{procedure}` URLs, and `settings set api-base-url` rejects user info, query strings, fragments, and non-root paths.
 

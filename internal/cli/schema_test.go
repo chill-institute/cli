@@ -253,6 +253,7 @@ func TestSchemaListsCommandsAndProceduresInJSON(t *testing.T) {
 	var output struct {
 		Commands   []schemaEntry `json:"commands"`
 		Procedures []schemaEntry `json:"procedures"`
+		Types      []schemaType  `json:"types"`
 	}
 	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
 		t.Fatalf("json.Unmarshal() error = %v", err)
@@ -262,6 +263,9 @@ func TestSchemaListsCommandsAndProceduresInJSON(t *testing.T) {
 	}
 	if len(output.Procedures) == 0 {
 		t.Fatal("expected procedures in schema output")
+	}
+	if len(output.Types) == 0 {
+		t.Fatal("expected types in schema output")
 	}
 	if output.Commands[0].ID != "add-transfer" {
 		t.Fatalf("first command id = %q, want %q", output.Commands[0].ID, "add-transfer")
@@ -295,6 +299,9 @@ func TestSchemaCommandSearchReturnsMetadata(t *testing.T) {
 	}
 	if output.LinkedProcedure != procedureUserSearch {
 		t.Fatalf("LinkedProcedure = %q, want %q", output.LinkedProcedure, procedureUserSearch)
+	}
+	if output.Output.Type != typeSearchResponse {
+		t.Fatalf("Output.Type = %q, want %q", output.Output.Type, typeSearchResponse)
 	}
 	if output.Mutates {
 		t.Fatal("search metadata unexpectedly marked mutating")
@@ -331,6 +338,146 @@ func TestSchemaProcedureSearchReturnsMetadata(t *testing.T) {
 	}
 	if output.AuthMode != "user" {
 		t.Fatalf("AuthMode = %q, want %q", output.AuthMode, "user")
+	}
+	if output.Output.Type != typeSearchResponse {
+		t.Fatalf("Output.Type = %q, want %q", output.Output.Type, typeSearchResponse)
+	}
+}
+
+func TestSchemaTypeReleaseInfoReturnsJSONNames(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newRootCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"schema", "type", typeReleaseInfo, "--output", "json"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output schemaType
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if output.ID != typeReleaseInfo {
+		t.Fatalf("ID = %q, want %q", output.ID, typeReleaseInfo)
+	}
+
+	foundBitDepth := false
+	foundThreeD := false
+	for _, field := range output.Fields {
+		switch field.Name {
+		case "bit_depth":
+			if field.JSONName != "bitDepth" {
+				t.Fatalf("bit_depth json_name = %q, want bitDepth", field.JSONName)
+			}
+			foundBitDepth = true
+		case "three_d":
+			if field.JSONName != "threeD" {
+				t.Fatalf("three_d json_name = %q, want threeD", field.JSONName)
+			}
+			foundThreeD = true
+		}
+	}
+	if !foundBitDepth || !foundThreeD {
+		t.Fatalf("fields = %#v, want bit_depth and three_d", output.Fields)
+	}
+}
+
+func TestSchemaTypeCanBeFieldFiltered(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newRootCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"schema", "type", typeSearchResult, "--fields", "id,fields.name,fields.json_name", "--output", "json"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if output["id"] != typeSearchResult {
+		t.Fatalf("id = %v, want %q", output["id"], typeSearchResult)
+	}
+
+	fields, ok := output["fields"].([]any)
+	if !ok || len(fields) == 0 {
+		t.Fatalf("fields = %#v, want populated fields", output["fields"])
+	}
+
+	foundReleaseInfo := false
+	for _, rawField := range fields {
+		field, ok := rawField.(map[string]any)
+		if !ok {
+			t.Fatalf("field = %#v, want object", rawField)
+		}
+		if _, ok := field["type"]; ok {
+			t.Fatalf("field = %#v, did not expect type after field filtering", field)
+		}
+		if field["name"] == "release_info" && field["json_name"] == "releaseInfo" {
+			foundReleaseInfo = true
+		}
+	}
+	if !foundReleaseInfo {
+		t.Fatalf("fields = %#v, want release_info/releaseInfo field", fields)
+	}
+}
+
+func TestSchemaCommandSchemaTypeReturnsMetadata(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newRootCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"schema", "command", "schema type", "--output", "json"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output schemaEntry
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if output.ID != "schema type" {
+		t.Fatalf("ID = %q, want schema type", output.ID)
+	}
+	if !output.SupportsFields {
+		t.Fatal("schema type metadata should support fields")
+	}
+}
+
+func TestSchemaTypeUnknownReturnsUsageError(t *testing.T) {
+	t.Parallel()
+
+	stdout := &bytes.Buffer{}
+	command := newRootCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"schema", "type", "missing.Type", "--output", "json"})
+	err := command.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "unknown type schema") {
+		t.Fatalf("error = %v, want unknown type schema", err)
 	}
 }
 

@@ -64,6 +64,7 @@ printf '{"url":"magnet:?xt=urn:btih:..."}' | chilly add-transfer --json @- --dry
 printf '{"token":"token-from-setup","skip_verify":true}' | chilly auth login --json @- --dry-run --output json
 printf '{"key":"api-base-url","value":"https://api.chill.institute"}' | chilly settings set --json @- --dry-run --output json
 chilly schema command search --fields id,linked_procedure --output json
+chilly schema type chill.v4.ReleaseInfo --fields fields.name,fields.json_name --output json
 chilly self-update --json '{"check":true}' --output json
 ```
 

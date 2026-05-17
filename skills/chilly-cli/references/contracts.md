@@ -16,7 +16,9 @@ Use this reference when you need runtime truth about the current CLI surface.
 - One command: `chilly schema command search --output json`
 - Narrow one command: `chilly schema command search --fields id,linked_procedure,inputs --output json`
 - One procedure: `chilly schema procedure chill.v4.UserService/Search --output json`
+- One output type: `chilly schema type chill.v4.ReleaseInfo --output json`
 - Describe without executing: `chilly search --describe --output json`
+- Type metadata includes protobuf field names and protobuf JSON names. For field masks, snake_case protobuf names such as `results.release_info.bit_depth` are accepted as aliases for protobuf JSON names such as `results.releaseInfo.bitDepth`.
 
 ## Local Diagnostics
 
