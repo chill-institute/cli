@@ -130,6 +130,7 @@ That registry is the source of truth for:
 - `chilly <command> --describe`
 - canonical-vs-alias metadata for overlapping top-level and nested commands
 - raw request-body support such as `add-transfer --json @-`, `auth login --json @-`, `settings set --json @-`, and `self-update --json`
+- mutually exclusive command input modes such as `add-transfer --url` vs `add-transfer --json`, and `settings set <key> <value>` vs `settings set --json`
 - current `--dry-run` support for mutating commands
 - current `--fields` support for read commands and schema surfaces
 

@@ -12,6 +12,13 @@ type schemaInput struct {
 	Description string `json:"description"`
 }
 
+type schemaInputMode struct {
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Inputs      []string `json:"inputs"`
+	Required    []string `json:"required"`
+}
+
 type schemaOutput struct {
 	JSON  bool   `json:"json"`
 	Human bool   `json:"human"`
@@ -19,17 +26,18 @@ type schemaOutput struct {
 }
 
 type schemaEntry struct {
-	ID              string        `json:"id"`
-	Kind            string        `json:"kind"`
-	Summary         string        `json:"summary"`
-	AliasFor        string        `json:"alias_for,omitempty"`
-	AuthMode        string        `json:"auth_mode"`
-	Mutates         bool          `json:"mutates"`
-	SupportsDryRun  bool          `json:"supports_dry_run"`
-	SupportsFields  bool          `json:"supports_fields"`
-	LinkedProcedure string        `json:"linked_procedure,omitempty"`
-	Inputs          []schemaInput `json:"inputs,omitempty"`
-	Output          schemaOutput  `json:"output"`
+	ID              string            `json:"id"`
+	Kind            string            `json:"kind"`
+	Summary         string            `json:"summary"`
+	AliasFor        string            `json:"alias_for,omitempty"`
+	AuthMode        string            `json:"auth_mode"`
+	Mutates         bool              `json:"mutates"`
+	SupportsDryRun  bool              `json:"supports_dry_run"`
+	SupportsFields  bool              `json:"supports_fields"`
+	LinkedProcedure string            `json:"linked_procedure,omitempty"`
+	Inputs          []schemaInput     `json:"inputs,omitempty"`
+	InputModes      []schemaInputMode `json:"input_modes,omitempty"`
+	Output          schemaOutput      `json:"output"`
 }
 
 type schemaField struct {
@@ -81,10 +89,11 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		LinkedProcedure: procedureUserAddTransfer,
 		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.AddTransferResponse"},
 		Inputs: appendInputs(
-			schemaInput{Name: "url", Type: "string", Required: true, Description: "magnet or URL to add as transfer"},
+			schemaInput{Name: "url", Type: "string", Description: "magnet or URL to add as transfer; use either --url or --json"},
 			schemaInput{Name: "json", Type: "string", Description: "raw JSON request body, or @- to read it from stdin"},
 			schemaInput{Name: "dry-run", Type: "boolean", Description: "validate input and print the request without executing it"},
 		),
+		InputModes: addTransferInputModes(),
 	},
 	"get-transfer": {
 		ID:              "get-transfer",
@@ -355,11 +364,12 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		SupportsDryRun: true,
 		Output:         schemaOutput{JSON: true, Human: true},
 		Inputs: appendInputs(
-			schemaInput{Name: "key", Type: "string", Required: true, Description: "settings key such as api-base-url"},
-			schemaInput{Name: "value", Type: "string", Required: true, Description: "next value for the selected settings key"},
+			schemaInput{Name: "key", Type: "string", Description: "settings key such as api-base-url; use with value or use --json"},
+			schemaInput{Name: "value", Type: "string", Description: "next value for the selected settings key; use with key or use --json"},
 			schemaInput{Name: "json", Type: "string", Description: "raw JSON request body, or @- to read it from stdin"},
 			schemaInput{Name: "dry-run", Type: "boolean", Description: "validate input and print the local config change without saving it"},
 		),
+		InputModes: settingsSetInputModes(),
 	},
 	"settings show": {
 		ID:             "settings show",
@@ -623,10 +633,11 @@ var commandSchemaRegistry = map[string]schemaEntry{
 		LinkedProcedure: procedureUserAddTransfer,
 		Output:          schemaOutput{JSON: true, Human: true, Type: "chill.v4.AddTransferResponse"},
 		Inputs: appendInputs(
-			schemaInput{Name: "url", Type: "string", Required: true, Description: "magnet or URL"},
+			schemaInput{Name: "url", Type: "string", Description: "magnet or URL; use either --url or --json"},
 			schemaInput{Name: "json", Type: "string", Description: "raw JSON request body, or @- to read it from stdin"},
 			schemaInput{Name: "dry-run", Type: "boolean", Description: "validate input and print the request without executing it"},
 		),
+		InputModes: addTransferInputModes(),
 	},
 	"user transfer get": {
 		ID:              "user transfer get",
@@ -937,12 +948,61 @@ func appendInputs(extra ...schemaInput) []schemaInput {
 	return inputs
 }
 
+func addTransferInputModes() []schemaInputMode {
+	return []schemaInputMode{
+		schemaInputModeForRequiredInputs(
+			"url",
+			"Build the request from --url.",
+			"url",
+		),
+		schemaInputModeForRequiredInputs(
+			"json",
+			"Use a raw JSON request body from --json.",
+			"json",
+		),
+	}
+}
+
+func settingsSetInputModes() []schemaInputMode {
+	return []schemaInputMode{
+		schemaInputModeForRequiredInputs(
+			"key-value",
+			"Set one setting from positional key and value arguments.",
+			"key",
+			"value",
+		),
+		schemaInputModeForRequiredInputs(
+			"json",
+			"Set one setting from a raw JSON request body.",
+			"json",
+		),
+	}
+}
+
+func schemaInputModeForRequiredInputs(name string, description string, inputs ...string) schemaInputMode {
+	return schemaInputMode{
+		Name:        name,
+		Description: description,
+		Inputs:      cloneStrings(inputs),
+		Required:    cloneStrings(inputs),
+	}
+}
+
 func cloneInputs(inputs []schemaInput) []schemaInput {
 	if len(inputs) == 0 {
 		return nil
 	}
 	cloned := make([]schemaInput, len(inputs))
 	copy(cloned, inputs)
+	return cloned
+}
+
+func cloneStrings(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	cloned := make([]string, len(values))
+	copy(cloned, values)
 	return cloned
 }
 

@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -176,36 +177,51 @@ func TestSchemaCommandUserIndexersReturnsFieldMetadata(t *testing.T) {
 	}
 }
 
-func TestSchemaCommandAddTransferReturnsRawJSONInput(t *testing.T) {
+func TestSchemaCommandAddTransferReturnsInputModes(t *testing.T) {
 	t.Parallel()
 
-	stdout := &bytes.Buffer{}
-	command := newRootCommand(&appContext{
-		opts:   &appOptions{output: outputJSON},
-		stdin:  strings.NewReader(""),
-		stdout: stdout,
-		stderr: &bytes.Buffer{},
+	output := commandSchemaForTest(t, "add-transfer")
+
+	assertInputNotUnconditionallyRequired(t, output, "url")
+	assertInputNotUnconditionallyRequired(t, output, "json")
+	assertInputModes(t, output, []schemaInputMode{
+		{
+			Name:        "url",
+			Description: "Build the request from --url.",
+			Inputs:      []string{"url"},
+			Required:    []string{"url"},
+		},
+		{
+			Name:        "json",
+			Description: "Use a raw JSON request body from --json.",
+			Inputs:      []string{"json"},
+			Required:    []string{"json"},
+		},
 	})
-	command.SetArgs([]string{"schema", "command", "add-transfer", "--output", "json"})
-	if err := command.Execute(); err != nil {
-		t.Fatalf("Execute() error = %v", err)
-	}
+}
 
-	var output schemaEntry
-	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
-		t.Fatalf("json.Unmarshal() error = %v", err)
-	}
+func TestSchemaCommandSettingsSetReturnsInputModes(t *testing.T) {
+	t.Parallel()
 
-	foundJSON := false
-	for _, input := range output.Inputs {
-		if input.Name == "json" {
-			foundJSON = true
-			break
-		}
-	}
-	if !foundJSON {
-		t.Fatalf("inputs = %#v, want json input", output.Inputs)
-	}
+	output := commandSchemaForTest(t, "settings set")
+
+	assertInputNotUnconditionallyRequired(t, output, "key")
+	assertInputNotUnconditionallyRequired(t, output, "value")
+	assertInputNotUnconditionallyRequired(t, output, "json")
+	assertInputModes(t, output, []schemaInputMode{
+		{
+			Name:        "key-value",
+			Description: "Set one setting from positional key and value arguments.",
+			Inputs:      []string{"key", "value"},
+			Required:    []string{"key", "value"},
+		},
+		{
+			Name:        "json",
+			Description: "Set one setting from a raw JSON request body.",
+			Inputs:      []string{"json"},
+			Required:    []string{"json"},
+		},
+	})
 }
 
 func TestSchemaProcedureGetFolderReturnsMetadata(t *testing.T) {
@@ -838,5 +854,49 @@ func TestRootHelpStillWorks(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "schema") {
 		t.Fatalf("help output missing schema command: %s", stdout.String())
+	}
+}
+
+func commandSchemaForTest(t *testing.T, commandID string) schemaEntry {
+	t.Helper()
+
+	stdout := &bytes.Buffer{}
+	command := newRootCommand(&appContext{
+		opts:   &appOptions{output: outputJSON},
+		stdin:  strings.NewReader(""),
+		stdout: stdout,
+		stderr: &bytes.Buffer{},
+	})
+	command.SetArgs([]string{"schema", "command", commandID, "--output", "json"})
+	if err := command.Execute(); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+
+	var output schemaEntry
+	if err := json.Unmarshal(stdout.Bytes(), &output); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	return output
+}
+
+func assertInputNotUnconditionallyRequired(t *testing.T, entry schemaEntry, inputName string) {
+	t.Helper()
+
+	for _, input := range entry.Inputs {
+		if input.Name == inputName {
+			if input.Required {
+				t.Fatalf("%s input %q is unconditionally required", entry.ID, inputName)
+			}
+			return
+		}
+	}
+	t.Fatalf("%s inputs = %#v, want input %q", entry.ID, entry.Inputs, inputName)
+}
+
+func assertInputModes(t *testing.T, entry schemaEntry, expected []schemaInputMode) {
+	t.Helper()
+
+	if !reflect.DeepEqual(entry.InputModes, expected) {
+		t.Fatalf("%s input modes = %#v, want %#v", entry.ID, entry.InputModes, expected)
 	}
 }
