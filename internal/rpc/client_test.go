@@ -8,7 +8,33 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestNewClientUsesDefaultTimeoutWithoutCustomClient(t *testing.T) {
+	t.Parallel()
+
+	client := NewClient("https://api.chill.institute", nil)
+	if client.httpClient == nil {
+		t.Fatal("httpClient = nil")
+	}
+	if client.httpClient.Timeout != DefaultClientTimeout {
+		t.Fatalf("Timeout = %v, want %v", client.httpClient.Timeout, DefaultClientTimeout)
+	}
+}
+
+func TestNewClientPreservesCustomClientTimeout(t *testing.T) {
+	t.Parallel()
+
+	customClient := &http.Client{Timeout: 5 * time.Second}
+	client := NewClient("https://api.chill.institute", customClient)
+	if client.httpClient != customClient {
+		t.Fatal("NewClient() replaced custom client")
+	}
+	if customClient.Timeout != 5*time.Second {
+		t.Fatalf("custom Timeout = %v, want 5s", customClient.Timeout)
+	}
+}
 
 func TestCallUserAuthAndRequestBody(t *testing.T) {
 	t.Parallel()

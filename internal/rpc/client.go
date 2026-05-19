@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	AuthNone AuthMode = "none"
-	AuthUser AuthMode = "user"
+	AuthNone             AuthMode = "none"
+	AuthUser             AuthMode = "user"
+	DefaultClientTimeout          = 20 * time.Second
 )
 
 type AuthMode string
@@ -69,7 +70,7 @@ func NewClient(baseURL string, httpClient *http.Client) *Client {
 
 	client := httpClient
 	if client == nil {
-		client = &http.Client{Timeout: 20 * time.Second}
+		client = &http.Client{Timeout: DefaultClientTimeout}
 	}
 
 	return &Client{

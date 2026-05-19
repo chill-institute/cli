@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -45,6 +44,7 @@ type appContext struct {
 	newTicker       func(time.Duration) progressTicker
 	progressLabel   string
 	progressEvery   time.Duration
+	rpcTimeout      time.Duration
 }
 
 type dryRunPreview struct {
@@ -90,6 +90,7 @@ func newAppContext(opts *appOptions) *appContext {
 		},
 		progressLabel: "Loading",
 		progressEvery: 120 * time.Millisecond,
+		rpcTimeout:    rpc.DefaultClientTimeout,
 	}
 }
 
@@ -150,7 +151,7 @@ func (app *appContext) saveConfig(cfg config.Config) error {
 }
 
 func (app *appContext) rpcClient(cfg config.Config) *rpc.Client {
-	return rpc.NewClient(cfg.APIBaseURL, http.DefaultClient)
+	return rpc.NewClient(cfg.APIBaseURL, nil)
 }
 
 func (app *appContext) userToken(cfg config.Config) (string, error) {
@@ -172,7 +173,10 @@ func (app *appContext) callRPC(
 	var response rpc.CallResponse
 	err := app.withProgress(func() error {
 		var callErr error
-		response, callErr = app.rpcClient(cfg).Call(ctx, rpc.CallRequest{
+		callCtx, cancel := app.rpcCallContext(ctx)
+		defer cancel()
+
+		response, callErr = app.rpcClient(cfg).Call(callCtx, rpc.CallRequest{
 			Procedure: procedure,
 			Body:      body,
 			AuthMode:  authMode,
@@ -184,6 +188,20 @@ func (app *appContext) callRPC(
 		return rpc.CallResponse{}, err
 	}
 	return response, nil
+}
+
+func (app *appContext) rpcCallContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if _, ok := ctx.Deadline(); ok {
+		return ctx, func() {}
+	}
+	timeout := app.rpcTimeout
+	if timeout <= 0 {
+		timeout = rpc.DefaultClientTimeout
+	}
+	return context.WithTimeout(ctx, timeout)
 }
 
 func (app *appContext) writeSelectedResponseBody(body []byte, selection *fieldSelection) error {

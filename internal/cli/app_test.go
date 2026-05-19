@@ -2,16 +2,27 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/chill-institute/chill-cli/internal/buildinfo"
+	"github.com/chill-institute/chill-cli/internal/config"
+	"github.com/chill-institute/chill-cli/internal/rpc"
 )
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (fn roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
+	return fn(request)
+}
 
 func TestReadLineTrimsInput(t *testing.T) {
 	t.Parallel()
@@ -41,6 +52,67 @@ func TestOpenBrowserRejectsEmptyURL(t *testing.T) {
 
 	if err := openBrowser(" "); err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestRPCClientDoesNotUseHTTPDefaultClient(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/v4/chill.v4.UserService/GetUserProfile" {
+			t.Fatalf("path = %q", request.URL.Path)
+		}
+		_, _ = writer.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer server.Close()
+
+	originalDefaultClient := http.DefaultClient
+	http.DefaultClient = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return nil, errors.New("unexpected http.DefaultClient use")
+	})}
+	t.Cleanup(func() { http.DefaultClient = originalDefaultClient })
+
+	app := newAppContext(&appOptions{output: outputJSON})
+	client := app.rpcClient(config.Config{APIBaseURL: server.URL})
+	_, err := client.Call(context.Background(), rpc.CallRequest{
+		Procedure: "chill.v4.UserService/GetUserProfile",
+		AuthMode:  rpc.AuthNone,
+	})
+	if err != nil {
+		t.Fatalf("Call() error = %v", err)
+	}
+}
+
+func TestCallRPCAbortsBlockedServerWithTimeout(t *testing.T) {
+	t.Parallel()
+
+	releaseServer := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		<-releaseServer
+		_, _ = writer.Write([]byte(`{"status":"late"}`))
+	}))
+	defer func() {
+		close(releaseServer)
+		server.Close()
+	}()
+
+	app := newAppContext(&appOptions{output: outputJSON})
+	app.stdout = &bytes.Buffer{}
+	app.stderr = &bytes.Buffer{}
+	app.rpcTimeout = 25 * time.Millisecond
+
+	started := time.Now()
+	_, err := app.callRPC(
+		context.Background(),
+		config.Config{APIBaseURL: server.URL},
+		"chill.v4.UserService/GetUserProfile",
+		map[string]any{},
+		rpc.AuthNone,
+		"",
+	)
+	if err == nil {
+		t.Fatal("callRPC() error = nil, want timeout")
+	}
+	if elapsed := time.Since(started); elapsed > time.Second {
+		t.Fatalf("callRPC() took %v, want under 1s", elapsed)
 	}
 }
 
