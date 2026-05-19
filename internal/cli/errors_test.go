@@ -37,6 +37,9 @@ func TestLooksLikeUsageError(t *testing.T) {
 	if !looksLikeUsageError(usageError("unknown_flag", "unknown flag: --bad")) {
 		t.Fatal("expected usage-like error")
 	}
+	if !looksLikeUsageError(usageError("unknown_shorthand", "unknown shorthand flag: '1' in -1")) {
+		t.Fatal("expected shorthand flag error to be usage-like")
+	}
 }
 
 func TestClassifyErrorMapsAPIAndFallbackCases(t *testing.T) {

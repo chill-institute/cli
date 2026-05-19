@@ -87,6 +87,7 @@ chilly schema command search --output json
 			return nil
 		},
 	}
+	command.SetFlagErrorFunc(classifyFlagParseError)
 
 	command.SetIn(app.stdin)
 	command.SetOut(app.stdout)
@@ -113,6 +114,92 @@ chilly schema command search --output json
 	command.AddCommand(newSelfUpdateCommand(app))
 
 	return command
+}
+
+func classifyFlagParseError(cmd *cobra.Command, err error) error {
+	if usageErr := negativeNumericPositionalUsageError(cmd, err); usageErr != nil {
+		return usageErr
+	}
+	return err
+}
+
+func negativeNumericPositionalUsageError(cmd *cobra.Command, err error) error {
+	rawArg, ok := negativeNumericShorthandArg(err)
+	if cmd == nil || !ok {
+		return nil
+	}
+
+	parsedArgCount := len(cmd.Flags().Args())
+	switch schemaCommandID(cmd.CommandPath()) {
+	case "get-transfer", "user transfer get":
+		return validationErrorForPositionalArg(parsedArgCount, rawArg, validateTransferIDArg)
+	case "user folder get", "user download-folder set":
+		return validationErrorForPositionalArg(parsedArgCount, rawArg, validateFolderIDArg)
+	case "tv-shows detail", "user tv-shows detail":
+		return validationErrorForPositionalArg(parsedArgCount, rawArg, validateIMDbIDArg)
+	case "tv-shows season", "tv-shows season-downloads", "user tv-shows season", "user tv-shows season-downloads":
+		return validationErrorForPositionalArg(parsedArgCount, rawArg, validateIMDbIDArg, validateSeasonNumberArg)
+	case "tv-shows episode-download", "user tv-shows episode-download":
+		return validationErrorForPositionalArg(parsedArgCount, rawArg, validateIMDbIDArg, validateSeasonNumberArg, validateEpisodeNumberArg)
+	default:
+		return nil
+	}
+}
+
+type positionalArgValidator func(string) error
+
+func validationErrorForPositionalArg(index int, rawArg string, validators ...positionalArgValidator) error {
+	if index < 0 || index >= len(validators) {
+		return nil
+	}
+	return validators[index](rawArg)
+}
+
+func validateTransferIDArg(raw string) error {
+	_, err := normalizeTransferID(raw)
+	return err
+}
+
+func validateFolderIDArg(raw string) error {
+	_, err := normalizeFolderID(raw)
+	return err
+}
+
+func validateIMDbIDArg(raw string) error {
+	_, err := normalizeIMDbID(raw)
+	return err
+}
+
+func validateSeasonNumberArg(raw string) error {
+	_, err := normalizeEpisodeOrdinal(raw, "season")
+	return err
+}
+
+func validateEpisodeNumberArg(raw string) error {
+	_, err := normalizeEpisodeOrdinal(raw, "episode")
+	return err
+}
+
+func negativeNumericShorthandArg(err error) (string, bool) {
+	if err == nil {
+		return "", false
+	}
+	message := strings.TrimSpace(err.Error())
+	marker := " in -"
+	index := strings.LastIndex(message, marker)
+	if index < 0 {
+		return "", false
+	}
+	value := strings.TrimSpace(message[index+len(marker):])
+	if value == "" {
+		return "", false
+	}
+	for _, r := range value {
+		if r < '0' || r > '9' {
+			return "", false
+		}
+	}
+	return "-" + value, true
 }
 
 func describeCommand(app *appContext, cmd *cobra.Command) error {

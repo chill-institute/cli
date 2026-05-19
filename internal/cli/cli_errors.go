@@ -118,6 +118,7 @@ func looksLikeUsageError(err error) bool {
 	message := strings.ToLower(strings.TrimSpace(err.Error()))
 	return strings.Contains(message, "unknown command") ||
 		strings.Contains(message, "unknown flag") ||
+		strings.Contains(message, "unknown shorthand flag") ||
 		strings.Contains(message, "unknown help topic") ||
 		strings.Contains(message, "requires at least") ||
 		strings.Contains(message, "accepts ") ||
@@ -182,10 +183,30 @@ func runCommand(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writ
 	}
 
 	command := newRootCommand(app)
+	seedOutputModeForEarlyErrors(app, args)
 	command.SetArgs(args)
 	if err := command.Execute(); err != nil {
 		writeError(app, err)
 		return exitCodeForError(err)
 	}
 	return int(exitCodeSuccess)
+}
+
+func seedOutputModeForEarlyErrors(app *appContext, args []string) {
+	if app == nil || app.opts == nil {
+		return
+	}
+	for index, arg := range args {
+		if arg == "--output" && index+1 < len(args) {
+			app.opts.output = args[index+1]
+			return
+		}
+		if value, ok := strings.CutPrefix(arg, "--output="); ok {
+			app.opts.output = value
+			return
+		}
+	}
+	if app.isTerminal != nil && !app.isTerminal(app.stdout) {
+		app.opts.output = outputJSON
+	}
 }

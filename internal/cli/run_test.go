@@ -581,6 +581,104 @@ func TestRunReturnsUsageExitCodeAndJSONErrorEnvelope(t *testing.T) {
 	}
 }
 
+func TestRunReturnsCommandJSONUsageErrorsForInvalidPositionalIDs(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		args      []string
+		wantCode  string
+		wantError string
+	}{
+		{
+			name:      "negative transfer id",
+			args:      []string{"get-transfer", "-1"},
+			wantCode:  "invalid_transfer_id",
+			wantError: "transfer id must be positive",
+		},
+		{
+			name:      "malformed transfer id",
+			args:      []string{"get-transfer", "nope"},
+			wantCode:  "invalid_transfer_id",
+			wantError: "transfer id must be an integer",
+		},
+		{
+			name:      "negative folder id",
+			args:      []string{"user", "folder", "get", "-1"},
+			wantCode:  "invalid_folder_id",
+			wantError: "folder id must be zero or positive",
+		},
+		{
+			name:      "malformed folder id",
+			args:      []string{"user", "folder", "get", "nope"},
+			wantCode:  "invalid_folder_id",
+			wantError: "folder id must be an integer",
+		},
+		{
+			name:      "negative season number",
+			args:      []string{"tv-shows", "season", "tt0944947", "-1"},
+			wantCode:  "invalid_season_number",
+			wantError: "season number must be positive",
+		},
+		{
+			name:      "negative imdb id",
+			args:      []string{"tv-shows", "season", "-1", "1"},
+			wantCode:  "invalid_imdb_id",
+			wantError: "IMDb id must start with tt",
+		},
+		{
+			name:      "negative detail imdb id",
+			args:      []string{"tv-shows", "detail", "-1"},
+			wantCode:  "invalid_imdb_id",
+			wantError: "IMDb id must start with tt",
+		},
+		{
+			name:      "negative episode number",
+			args:      []string{"tv-shows", "episode-download", "tt0944947", "1", "-1"},
+			wantCode:  "invalid_episode_number",
+			wantError: "episode number must be positive",
+		},
+		{
+			name:      "malformed season number",
+			args:      []string{"tv-shows", "season", "tt0944947", "nope"},
+			wantCode:  "invalid_season_number",
+			wantError: "season number must be an integer",
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			stdout := &bytes.Buffer{}
+			stderr := &bytes.Buffer{}
+			args := append(append([]string{}, tc.args...), "--output", "json")
+			exitCode := Run(args, strings.NewReader(""), stdout, stderr)
+			if exitCode != int(exitCodeUsage) {
+				t.Fatalf("exitCode = %d, want %d; stderr = %q", exitCode, exitCodeUsage, stderr.String())
+			}
+			if stdout.Len() != 0 {
+				t.Fatalf("stdout = %q, want empty", stdout.String())
+			}
+
+			var output map[string]any
+			if err := json.Unmarshal(stderr.Bytes(), &output); err != nil {
+				t.Fatalf("json.Unmarshal(stderr) error = %v; stderr = %q", err, stderr.String())
+			}
+			if output["kind"] != string(errorKindUsage) {
+				t.Fatalf("kind = %v, want %q", output["kind"], errorKindUsage)
+			}
+			if output["code"] != tc.wantCode {
+				t.Fatalf("code = %v, want %q", output["code"], tc.wantCode)
+			}
+			if output["message"] != tc.wantError {
+				t.Fatalf("message = %v, want %q", output["message"], tc.wantError)
+			}
+		})
+	}
+}
+
 func TestRunReturnsAuthExitCodeAndJSONErrorEnvelope(t *testing.T) {
 	t.Parallel()
 
