@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -35,9 +37,66 @@ func TestLocalSchemaMatchesContractsProto(t *testing.T) {
 	}
 
 	messages := parseProtoMessages(string(payload))
-	assertTypeMatchesProtoMessage(t, typeReleaseInfo, messages["ReleaseInfo"])
-	assertTypeMatchesProtoMessage(t, typeSearchResult, messages["SearchResult"])
-	assertTypeMatchesProtoMessage(t, typeSearchResponse, messages["SearchResponse"])
+	for _, typeID := range localContractTypeIDs() {
+		messageName, ok := strings.CutPrefix(typeID, "chill.v4.")
+		if !ok {
+			continue
+		}
+		assertTypeMatchesProtoMessage(t, typeID, messages[messageName])
+	}
+}
+
+func TestAdvertisedOutputTypesResolve(t *testing.T) {
+	t.Parallel()
+
+	for _, entry := range append(listCommandSchemas(), listProcedureSchemas()...) {
+		entry := entry
+		t.Run(fmt.Sprintf("%s/%s", entry.Kind, entry.ID), func(t *testing.T) {
+			t.Parallel()
+			assertSchemaTypeResolves(t, entry.Output.Type)
+		})
+	}
+
+	for _, entry := range listTypeSchemas() {
+		entry := entry
+		t.Run(fmt.Sprintf("type/%s", entry.ID), func(t *testing.T) {
+			t.Parallel()
+			for _, field := range entry.Fields {
+				assertSchemaTypeResolves(t, field.Type)
+			}
+		})
+	}
+}
+
+func localContractTypeIDs() []string {
+	typeIDs := make([]string, 0, len(typeSchemaRegistry))
+	for typeID := range typeSchemaRegistry {
+		if strings.HasPrefix(typeID, "chill.v4.") {
+			typeIDs = append(typeIDs, typeID)
+		}
+	}
+	sort.Strings(typeIDs)
+	return typeIDs
+}
+
+func assertSchemaTypeResolves(t *testing.T, typeID string) {
+	t.Helper()
+
+	if typeID == "" || isPrimitiveSchemaType(typeID) {
+		return
+	}
+	if _, ok := lookupTypeSchema(typeID); !ok {
+		t.Fatalf("schema type %q does not resolve", typeID)
+	}
+}
+
+func isPrimitiveSchemaType(typeID string) bool {
+	switch typeID {
+	case "array", "boolean", "integer", "number", "object", "string":
+		return true
+	default:
+		return false
+	}
 }
 
 func firstExistingPath(paths ...string) string {
@@ -94,33 +153,74 @@ func assertTypeMatchesProtoMessage(t *testing.T, typeID string, protoFields []pr
 
 func parseProtoMessages(payload string) map[string][]protoField {
 	messages := map[string][]protoField{}
-	messagePattern := regexp.MustCompile(`(?s)message\s+(\w+)\s*\{(.*?)\n\}`)
-	fieldPattern := regexp.MustCompile(`(?m)^\s*(optional\s+|repeated\s+)?(\w+)\s+(\w+)\s*=\s*\d+\s*;`)
+	enumTypes := parseProtoEnumTypes(payload)
+	fieldPattern := regexp.MustCompile(`(?m)^\s*(optional\s+|repeated\s+)?([A-Za-z_]\w*)\s+([A-Za-z_]\w*)\s*=\s*\d+\s*(?:\[[^\]]*\])?\s*;`)
 
-	for _, messageMatch := range messagePattern.FindAllStringSubmatch(payload, -1) {
-		name := messageMatch[1]
-		body := messageMatch[2]
+	for _, message := range parseProtoMessageBlocks(payload) {
 		fields := make([]protoField, 0)
-		for _, fieldMatch := range fieldPattern.FindAllStringSubmatch(body, -1) {
+		for _, fieldMatch := range fieldPattern.FindAllStringSubmatch(message.body, -1) {
 			modifier := strings.TrimSpace(fieldMatch[1])
 			fields = append(fields, protoField{
 				Name:     fieldMatch[3],
-				Type:     schemaTypeForProtoField(fieldMatch[2]),
+				Type:     schemaTypeForProtoField(fieldMatch[2], enumTypes),
 				Repeated: modifier == "repeated",
 				Optional: modifier == "optional",
 			})
 		}
-		messages[name] = fields
+		messages[message.name] = fields
 	}
 	return messages
 }
 
-func schemaTypeForProtoField(protoType string) string {
+type protoMessageBlock struct {
+	name string
+	body string
+}
+
+func parseProtoMessageBlocks(payload string) []protoMessageBlock {
+	messagePattern := regexp.MustCompile(`\bmessage\s+(\w+)\s*\{`)
+	matches := messagePattern.FindAllStringSubmatchIndex(payload, -1)
+	blocks := make([]protoMessageBlock, 0, len(matches))
+	for _, match := range matches {
+		name := payload[match[2]:match[3]]
+		bodyStart := match[1]
+		depth := 1
+		for cursor := bodyStart; cursor < len(payload); cursor++ {
+			switch payload[cursor] {
+			case '{':
+				depth++
+			case '}':
+				depth--
+				if depth == 0 {
+					blocks = append(blocks, protoMessageBlock{
+						name: name,
+						body: payload[bodyStart:cursor],
+					})
+					cursor = len(payload)
+				}
+			}
+		}
+	}
+	return blocks
+}
+
+func parseProtoEnumTypes(payload string) map[string]bool {
+	enumPattern := regexp.MustCompile(`(?m)^\s*enum\s+(\w+)\s*\{`)
+	enumTypes := map[string]bool{}
+	for _, enumMatch := range enumPattern.FindAllStringSubmatch(payload, -1) {
+		enumTypes[enumMatch[1]] = true
+	}
+	return enumTypes
+}
+
+func schemaTypeForProtoField(protoType string, enumTypes map[string]bool) string {
 	switch protoType {
 	case "string":
 		return "string"
 	case "int32", "int64":
 		return "integer"
+	case "double", "float":
+		return "number"
 	case "bool":
 		return "boolean"
 	case "ReleaseInfo":
@@ -128,6 +228,9 @@ func schemaTypeForProtoField(protoType string) string {
 	case "SearchResult":
 		return typeSearchResult
 	default:
+		if enumTypes[protoType] {
+			return "string"
+		}
 		return "chill.v4." + protoType
 	}
 }
